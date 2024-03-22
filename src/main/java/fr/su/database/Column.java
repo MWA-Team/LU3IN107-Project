@@ -5,15 +5,14 @@ import java.util.UUID;
 
 public class Column<T> {
 
+    //Cassandra
+    //orienté colonne vs orienté ligne
+
     private UUID serverIdentifier; //Où est située cette colonne ?
 
     private String name; //Nom de la colonne
     private T columnType; //Type de variable dans cette colonne
 
     private List<T> values; //Liste des valeurs dans cette colonne (vide si c'est pas serverIdentifier == serverActuel sinon contient les données)
-
-
-
-
 
 }
