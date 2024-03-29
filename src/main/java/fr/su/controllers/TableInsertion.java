@@ -1,6 +1,5 @@
 package fr.su.controllers;
 
-import fr.su.DownloadFormData;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import org.apache.commons.io.IOUtils;
