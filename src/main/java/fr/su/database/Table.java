@@ -14,6 +14,8 @@ public class Table {
         this.name = name;
     }
 
+    public String getName() { return this.name; }
+
     public HashMap<UUID, Column> getColumns() {
         return columns;
     }

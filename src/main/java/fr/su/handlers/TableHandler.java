@@ -20,7 +20,7 @@ public class TableHandler {
             table.getColumns().put(UUID.randomUUID(), new Column(tableParameter.getName(), String.class));
         }
 
-        database.getTables().add(table);
+        database.getTables().put(table.toString(), table);
 
     }
 }

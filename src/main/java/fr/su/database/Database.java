@@ -35,8 +35,8 @@ public class Database {
         return Instance.INSTANCE;
     }
 
-    public List<Table> getTables() {
-        return new ArrayList<>(tables);
+    public HashMap<String, Table> getTables() {
+        return new HashMap<>(tables);
     }
 
 }
