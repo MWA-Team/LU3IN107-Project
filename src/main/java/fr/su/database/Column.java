@@ -20,4 +20,16 @@ public class Column<T> {
         this.name = name;
         this.values = new HashMap<Integer, T>();
     }
+
+    public UUID getServerIdentifier() {
+        return serverIdentifier;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public HashMap<Integer, T> getValues() {
+        return values;
+    }
 }

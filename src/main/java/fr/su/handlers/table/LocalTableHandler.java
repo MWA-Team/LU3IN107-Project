@@ -1,4 +1,4 @@
-package fr.su.handlers;
+package fr.su.handlers.table;
 
 import fr.su.controllers.TableController;
 import fr.su.database.Column;
@@ -7,9 +7,9 @@ import fr.su.database.Table;
 
 import java.util.UUID;
 
-public class TableHandler {
-
-    public static void handler(TableController.TableBody tableBody) {
+public class LocalTableHandler implements TableHandler {
+    @Override
+    public void createTable(TableController.TableBody tableBody) {
 
         Database database = Database.getInstance();
 
@@ -20,7 +20,6 @@ public class TableHandler {
             table.getColumns().put(UUID.randomUUID(), new Column(tableParameter.getName(), String.class));
         }
 
-        database.getTables().put(table.toString(), table);
-
+        database.addTable(table);
     }
 }

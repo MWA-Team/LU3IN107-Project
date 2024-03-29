@@ -12,6 +12,7 @@ public class Table {
 
     public Table(String name) {
         this.name = name;
+        this.columns = new HashMap<>();
     }
 
     public String getName() { return this.name; }

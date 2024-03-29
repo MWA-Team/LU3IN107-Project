@@ -39,4 +39,9 @@ public class Database {
         return new HashMap<>(tables);
     }
 
+    public void addTable(Table table) {
+
+        this.tables.put(table.getName(), table);
+    }
+
 }
