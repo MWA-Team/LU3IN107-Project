@@ -1,6 +1,5 @@
 package fr.su.controllers;
 
-import fr.su.DownloadFormData;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import org.apache.commons.io.IOUtils;
@@ -13,7 +12,7 @@ import java.nio.charset.StandardCharsets;
 public class TableInsertion {
 
     @POST
-    @Consumes(MediaType.TEXT_PLAIN)
+    @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Path("file")
     public String getFile(InputStream inputStream) throws IOException {
 
