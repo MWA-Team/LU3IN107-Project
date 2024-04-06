@@ -1,10 +1,14 @@
 package fr.su.handlers;
 
+import fr.su.controllers.TableInsertion;
+import fr.su.proxy.TableInsertionProxy;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.Context;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.rest.client.RestClientBuilder;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,6 +17,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -24,9 +30,6 @@ public class ForwardingManager {
 
     @ConfigProperty(name = "fr.su.servers.ips")
     List<String> ips;
-
-    @ConfigProperty(name = "fr.su.query.servers.id")
-    String server_id;
 
     public ForwardingManager() {}
 
@@ -45,26 +48,22 @@ public class ForwardingManager {
         if (!shouldForward(remoteHostAddr, localAddr)) {
             return "Query is coming from another server !";
         }
-
+        System.out.println(localAddr + "\n" + remoteHostAddr);
         HttpServerRequest request = context.request();
         String uri = request.uri();
         var charset = request.getParamsCharset();
-        int id = 2;
-        List<HttpResponse> retval = new ArrayList<>();
+        Integer id = 2;
         for (String ip : ips) {
             if (ip.equals(localAddr))
                 continue;
             else {
-                //context.request().params().set("key1", "value1");
-                URI newAbsUri = URI.create("http://" + ip + ":8080" + uri);
-
-                HttpRequest newRequest = HttpRequest.newBuilder(newAbsUri)
-                .headers("Content-Type", request.headers().get("Content-Type"))
-                .POST(HttpRequest.BodyPublishers.ofString(body)).build();
-                retval.add(HttpClient.newHttpClient().send(newRequest, HttpResponse.BodyHandlers.ofString()));
+                URI newUri = URI.create("http://" + ip + ":8080");
+                TableInsertionProxy proxy = RestClientBuilder.newBuilder().baseUri(newUri).build(TableInsertionProxy.class);
+                proxy.insert(id.toString(), body);
+                id++;
             }
         }
-        return retval;
+        return "Ok boomer";
     }
 
     private boolean shouldForward(String remoteHostAddr, String localAddr) {
@@ -74,6 +73,26 @@ public class ForwardingManager {
             }
         }
         return true;
+    }
+
+    /**
+     * This function is used to get the local address of one of the computer's network interfaces if it is contained in the config ips.
+     * @param
+     * @return String
+     * @throws SocketException
+     */
+    private String getSelfIP() throws SocketException {
+        for (String ip : ips) {
+            Enumeration<NetworkInterface> netInts = NetworkInterface.getNetworkInterfaces();
+            for (NetworkInterface ni : Collections.list(netInts)) {
+                Enumeration<InetAddress> inetAdresses = ni.getInetAddresses();
+                for (InetAddress addr : Collections.list(inetAdresses)) {
+                    if (addr.getHostAddress().equals(ip))
+                        return ip;
+                }
+            }
+        }
+        return null;
     }
 
 }

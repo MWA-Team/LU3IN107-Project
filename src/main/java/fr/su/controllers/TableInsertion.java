@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketException;
 
-@Path("insert")
+@Path("/insert")
 public class TableInsertion {
 
     @Inject
