@@ -38,7 +38,7 @@ public class ForwardingManager {
      * @return
      * @throws SocketException
      */
-    public Object forwardPost(InputStream body) throws IOException, InterruptedException {
+    public Object forwardPost(String body) throws IOException, InterruptedException {
         String remoteHostAddr = context.request().remoteAddress().hostAddress();
         String localAddr = context.request().localAddress().hostAddress();
 
@@ -50,7 +50,7 @@ public class ForwardingManager {
         String uri = request.uri();
         var charset = request.getParamsCharset();
         int id = 2;
-        List<String> retval = new ArrayList<>();
+        List<HttpResponse> retval = new ArrayList<>();
         for (String ip : ips) {
             if (ip.equals(localAddr))
                 continue;
@@ -60,14 +60,8 @@ public class ForwardingManager {
 
                 HttpRequest newRequest = HttpRequest.newBuilder(newAbsUri)
                 .headers("Content-Type", request.headers().get("Content-Type"))
-                .POST(HttpRequest.BodyPublishers.ofInputStream(new Supplier<InputStream>() {
-                    @Override
-                    public InputStream get() {
-                        return body;
-                    }
-                })).build();
-                System.out.println();
-                retval.add(HttpClient.newHttpClient().send(newRequest, HttpResponse.BodyHandlers.ofString()).body());
+                .POST(HttpRequest.BodyPublishers.ofString(body)).build();
+                retval.add(HttpClient.newHttpClient().send(newRequest, HttpResponse.BodyHandlers.ofString()));
             }
         }
         return retval;
