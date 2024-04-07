@@ -1,6 +1,7 @@
 package fr.su.database;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,23 +25,23 @@ public class Database {
         // même dans un environnement multi-threadé.
     }
 
-    private List<Table> tables;
+    private HashMap<String, Table> tables;
 
     private Database() {
-        this.tables = new ArrayList<>();
+        this.tables = new HashMap<>();
     }
 
     public static Database getInstance() {
         return Instance.INSTANCE;
     }
 
-    public List<Table> getTables() {
-        return new ArrayList<>(tables);
+    public HashMap<String, Table> getTables() {
+        return new HashMap<>(tables);
     }
 
-    public Table getTableByIndex(int i) {
-        //utilité pas encore claire mais
-        return tables.get(i);
+    public void addTable(Table table) {
+
+        this.tables.put(table.getName(), table);
     }
 
 }
