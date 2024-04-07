@@ -1,7 +1,6 @@
 package fr.su.handlers;
 
 import fr.su.proxy.TableInsertionProxy;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.Context;
@@ -10,6 +9,7 @@ import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
 import java.io.IOException;
 import java.net.*;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
@@ -29,19 +29,21 @@ public class ForwardingManager {
      * This function is used to forward a GET query to the other servers on the system.
      * It recognizes its own address and skip it in order to not make a loop.
      * With the same idea, it doesn't forward the query if the sender is another server.
-     * @param
-     * @return
-     * @throws SocketException
+     * @param body
+     * @return Object
+     * @throws IOException
      */
-    public Object forwardPost(String body) throws IOException, InterruptedException {
-        if (!shouldForward(context.request().remoteAddress().hostAddress())) {
+    public Object forwardPost(String body) throws IOException {
+        /*
+        All server use a header as a signature. If this signature isn't found, we can assume that a client made the query.
+         */
+        if (context.request().headers().get("Server-Signature") != null) {
             return "Query is coming from another server !";
         }
 
-        System.out.println("local addr : " + context.request().localAddress().hostAddress() + " | " + "remote addr : " + context.request().remoteAddress().hostAddress());
-
-        HttpServerRequest request = context.request();
         Integer id = 2;
+        String localAddr = context.request().localAddress().hostAddress();
+        List<Object> retval = new ArrayList<>();
         for (String ip : ips) {
             if (isLocalMachine(ip))
                 continue;
@@ -49,21 +51,11 @@ public class ForwardingManager {
                 System.out.println("Forwarding happened once.");
                 URI newUri = URI.create("http://" + ip + ":8080");
                 TableInsertionProxy proxy = RestClientBuilder.newBuilder().baseUri(newUri).build(TableInsertionProxy.class);
-                proxy.insert(id.toString(), body);
-
+                retval.add(proxy.insert(localAddr, id.toString(), body));
                 id++;
             }
         }
-        return "Query from \"reel client\" and forwarding maybe have happened";
-    }
-
-    private boolean shouldForward(String remoteHostAddr) throws SocketException {
-        for (String ip : ips) {
-            if (ip.equals(remoteHostAddr) && !isLocalMachine(ip)) {
-                return false;
-            }
-        }
-        return true;
+        return "Query from \"reel client\" and forwarding maybe have happened (refer to above logs)";
     }
 
     /**
