@@ -1,8 +1,11 @@
 package fr.su.handlers;
 
-import fr.su.proxy.TableInsertionProxy;
+import fr.su.proxy.ForwardingProxy;
+import fr.su.proxy.ProxyLambda;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.HeaderParam;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
@@ -26,18 +29,56 @@ public class ForwardingManager {
     public ForwardingManager() {}
 
     /**
-     * This function is used to forward a GET query to the other servers on the system.
-     * It recognizes its own address and skip it in order to not make a loop.
-     * With the same idea, it doesn't forward the query if the sender is another server.
+     * This function is used to forward a POST query to the other servers on the distributed system.
      * @param body
      * @return Object
      * @throws IOException
      */
     public Object forwardPost(String body) throws IOException {
+        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, String data) -> {
+            return proxy.post(signature, id, data);
+        });
+    }
+
+    /**
+     * This function is used to forward a PUT query to the other servers on the distributed system.
+     * @param body
+     * @return Object
+     * @throws IOException
+     */
+    public Object forwardPut(String body) throws IOException {
+        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, String data) -> {
+            return proxy.put(signature, id, data);
+        });
+    }
+
+    /**
+     * This function is used to forward a GET query to the other servers on the distributed system.
+     * @param body
+     * @return Object
+     * @throws IOException
+     */
+    public Object forwardGet(String body) throws IOException {
+        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, String data) -> {
+            return proxy.get(signature, id, data);
+        });
+    }
+
+    /**
+     * This function is used to forward a query to the other servers on the distributed system.
+     * It recognizes its own addresses and skip them in order to not make a loop.
+     * With the same idea, it doesn't forward the query if the sender is another server.
+     * @param body contains the body of the query
+     * @param lambda is the function that needs to be called in ForwardingProxy (used to factorize code)
+     * @return Object
+     * @throws IOException
+     */
+    private Object forwardQuery(String body, ProxyLambda lambda) throws IOException {
         /*
         All server use a header as a signature. If this signature isn't found, we can assume that a client made the query.
          */
-        if (context.request().headers().get("Server-Signature") != null) {
+        String serverSignature = context.request().headers().get("Server-Signature");
+        if (serverSignature != null && !serverSignature.isEmpty()) {
             return "Query is coming from another server !";
         }
 
@@ -49,17 +90,17 @@ public class ForwardingManager {
                 continue;
             else {
                 System.out.println("Forwarding happened once.");
-                URI newUri = URI.create("http://" + ip + ":8080");
-                TableInsertionProxy proxy = RestClientBuilder.newBuilder().baseUri(newUri).build(TableInsertionProxy.class);
-                retval.add(proxy.insert(localAddr, id.toString(), body));
+                URI newUri = URI.create("http://" + ip + ":8080" + context.request().uri());
+                ForwardingProxy proxy = RestClientBuilder.newBuilder().baseUri(newUri).build(ForwardingProxy.class);
+                retval.add(lambda.call(proxy, localAddr, id.toString(), body));
                 id++;
             }
         }
-        return "Query from \"reel client\" and forwarding maybe have happened (refer to above logs)";
+        return "Query from \"reel client\" and forwarding may have happened (refer to above logs)";
     }
 
     /**
-     * This function is used to get the local address of one of the computer's network interfaces if it is contained in the config ips.
+     * This function is used to know if the given address is one of the computer's network interfaces' IP address.
      * @param testIp
      * @return boolean
      * @throws SocketException
