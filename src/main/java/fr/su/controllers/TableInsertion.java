@@ -25,7 +25,7 @@ public class TableInsertion {
     }*/
 
     @POST
-    @Consumes(MediaType.APPLICATION_JSON)
+    //@Consumes(MediaType.APPLICATION_JSON)
     public Object getTest(String body) throws IOException, InterruptedException {
         return forwardingManager.forwardPost(body);
     }
