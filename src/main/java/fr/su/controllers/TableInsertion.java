@@ -16,6 +16,25 @@ public class TableInsertion {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     public Object getFile(String body) throws IOException {
+
+        /**
+         *
+         * EXEMPLE
+         *
+         * ApacheReaderFile f;
+         *
+         * List<String> strct = f.getStructure(); //Toutes les colonnes
+         * HashMap<String, List<String>> content;
+         *
+         * for(String column : strct)
+         *
+         *      content.put(column, new ArrayList<>()); //création d'une colonne vide
+         *
+         *      content.get(column).addAll(f.getColumn(column));
+         *
+         *
+         */
+
         return forwardingManager.forwardPost(body);
     }
 
