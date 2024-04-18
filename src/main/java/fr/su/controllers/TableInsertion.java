@@ -1,32 +1,16 @@
 package fr.su.controllers;
 
-import fr.su.handlers.ForwardingManager;
 import fr.su.handlers.insertion.LocalInsertionHandler;
 import fr.su.handlers.insertion.RemoteInsertionHandler;
-import fr.su.handlers.table.LocalTableHandler;
-import fr.su.handlers.table.RemoteTableHandler;
 import fr.su.utils.exceptions.TableColumnSizeException;
 import fr.su.utils.exceptions.WrongTableFormatException;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.parquet.column.page.PageReadStore;
-import org.apache.parquet.example.data.Group;
-import org.apache.parquet.example.data.simple.convert.GroupRecordConverter;
-import org.apache.parquet.format.converter.ParquetMetadataConverter;
-import org.apache.parquet.hadoop.ParquetFileReader;
-import org.apache.parquet.hadoop.metadata.ParquetMetadata;
-import org.apache.parquet.io.ColumnIOFactory;
-import org.apache.parquet.io.MessageColumnIO;
-import org.apache.parquet.io.RecordReader;
-import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.Type;
 
-import java.io.FileOutputStream;
+
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.util.Map;
 
 @Path("/insert")
 public class TableInsertion {
@@ -36,11 +20,33 @@ public class TableInsertion {
 
     @POST
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
-    public Object insertion(InputStream inputStream) throws IOException, WrongTableFormatException, TableColumnSizeException {
+    public Object insertion(InputStream inputStream) {
+        try {
+            int responseCode = localInsertionHandler.insert(inputStream);
 
-        int resLocal = localInsertionHandler.insert(inputStream);
-        int resRemote = remoteInsertionHandler.insert(inputStream);
+            if (responseCode == 200) {
+                Map<String, Map<Integer, Object>> parquetData = localInsertionHandler.parseParquet();
+                parquetData.forEach((column, values) -> {
+                    System.out.println("Column: " + column);
+                    values.forEach((row, value) -> {
+                        System.out.println("Row " + row + ": " + value);
+                    });
+                });
+                return "OK";
+            } else {
+                return "Error during insertion";
+            }
+        } catch (WrongTableFormatException e) {
+            e.printStackTrace();
+            return "Error: " + e.getMessage();
+        }
 
+
+
+   /*           verifier si c'est parquet avec PAR1
+                save le parquet sous forme de fichier
+                valider le shema du parquet avec le shema de notre db
+            }*/
         /**
          *
          * EXEMPLE
@@ -58,9 +64,8 @@ public class TableInsertion {
          *
          *
          */
-
+        //int resRemote = remoteInsertionHandler.insert(inputStream);
         //Test, ajouter un message et implémenter un système d'annulation si un des forward a échoué
-        return resLocal == 200 && resRemote == 200 ? "OK" : "NON OK";
     }
 
 }
