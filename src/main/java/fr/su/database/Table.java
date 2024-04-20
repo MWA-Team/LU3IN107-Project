@@ -8,7 +8,7 @@ public class Table {
 
     private String name;
 
-    private HashMap<UUID, Column> columns; //Columns by server
+    private HashMap<String, Column> columns; //Columns by name
 
     public Table(String name) {
         this.name = name;
@@ -17,7 +17,7 @@ public class Table {
 
     public String getName() { return this.name; }
 
-    public HashMap<UUID, Column> getColumns() {
+    public HashMap<String, Column> getColumns() {
         return columns;
     }
 }

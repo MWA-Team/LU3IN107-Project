@@ -17,6 +17,7 @@ import org.apache.parquet.io.RecordReader;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.Type;
 
+import javax.xml.crypto.Data;
 import java.io.*;
 import java.nio.file.Files;
 import java.util.*;
@@ -54,13 +55,13 @@ public class LocalInsertionHandler implements InsertionHandler {
             e.printStackTrace();
             throw new RuntimeException(e);
         } finally {
-            if (tempFile != null) {
+            /*if (tempFile != null) {
                 try {
                     Files.delete(tempFile.toPath());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-            }
+            }*/
         }
     }
 
@@ -103,6 +104,7 @@ public class LocalInsertionHandler implements InsertionHandler {
             } finally {
                 r.close();
             }
+
         } catch (IOException e) {
             System.out.println("Error reading parquet file.");
             e.printStackTrace();
@@ -140,7 +142,20 @@ public class LocalInsertionHandler implements InsertionHandler {
 
             for (int index = 0; index < valueCount; index++) {
                 if (fieldType.isPrimitive()) {
+
+                    String val = g.getValueToString(field, index);
+
                     System.out.println(prefix + fieldName + ": " + g.getValueToString(field, index));
+
+                    System.out.println("Getting column " + fieldName);
+                    System.out.println("Table size : " + Database.getInstance().getTables().size());
+                    System.out.println("Columns size : " + Database.getInstance().getTables().get("test"));
+                    Column column = Database.getInstance().getTables().get("test").getColumns().get(fieldName);
+                    System.out.println("INDEX - " + index);
+                    if(column.storedhere()) {
+                        column.addValue(index, val);
+                    }
+
                 } else {
                     Group nestedGroup = g.getGroup(field, index);
                     printGroup(nestedGroup, prefix + fieldName + ".");
@@ -163,7 +178,7 @@ public class LocalInsertionHandler implements InsertionHandler {
             }
 
             Table table = databaseTables.get(tableName);
-            Map<UUID, Column> tableColumns = table.getColumns();
+            Map<String, Column> tableColumns = table.getColumns();
             List<String> parquetTableColumns = getTableColumns(absolutePath, tableName);
 
             if (parquetTableColumns.size() != tableColumns.size()) {

@@ -38,6 +38,7 @@ public class Database {
 
     public void addTable(Table table) {
 
+        System.out.println("Added " + table + " to the tables");
         this.tables.put(table.getName(), table);
     }
 

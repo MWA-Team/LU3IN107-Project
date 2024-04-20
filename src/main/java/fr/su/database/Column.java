@@ -32,4 +32,15 @@ public class Column<T> {
     public HashMap<Integer, T> getValues() {
         return values;
     }
+
+    public void addValue(int index, T val) {
+
+        System.out.println("Added value at index " + index + " with value " + val + " in column " + name);
+        this.values.put(index, val);
+    }
+
+    public boolean storedhere() {
+
+        return true; //Retourne si cette colonne est stocké sur ce serveur pour l'instant un seul serveur
+    }
 }
