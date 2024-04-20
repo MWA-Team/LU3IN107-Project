@@ -4,6 +4,7 @@ import fr.su.database.Database;
 import fr.su.database.Table;
 import jakarta.ws.rs.*;
 
+import javax.xml.crypto.Data;
 import java.util.stream.Collectors;
 
 @Path("debug")
@@ -24,6 +25,14 @@ public class DebugController {
         for(Table table : database.getTables().values()) {
 
             sb.append("Table : " + table.getName() + " : " + table.getColumns().values().stream().map(all -> all.getName()).collect(Collectors.joining(", ")));
+
+            System.out.println("First line : ");
+            for(String keys : table.getColumns().keySet()) {
+
+                System.out.println("Clef : " + keys + " | Value : " + table.getColumns().get(keys).getValues().get(0));
+
+            }
+
         }
 
         return sb.toString();
