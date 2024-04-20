@@ -96,7 +96,7 @@ public class LocalInsertionHandler implements InsertionHandler {
                     final RecordReader<Group> recordReader = columnIO.getRecordReader(pages, new GroupRecordConverter(schema));
                     for (int i = 0; i < rows; i++) {
                         final Group g = recordReader.read();
-                        printGroup(g, "");
+                        printGroup(g, "", i);
                         System.out.println("-----");
                     }
 
@@ -133,7 +133,7 @@ public class LocalInsertionHandler implements InsertionHandler {
     }
 
 
-    private static void printGroup(Group g, String prefix) {
+    private static void printGroup(Group g, String prefix, int i) {
         int fieldCount = g.getType().getFieldCount();
         for (int field = 0; field < fieldCount; field++) {
             int valueCount = g.getFieldRepetitionCount(field);
@@ -145,20 +145,14 @@ public class LocalInsertionHandler implements InsertionHandler {
 
                     String val = g.getValueToString(field, index);
 
-                    System.out.println(prefix + fieldName + ": " + g.getValueToString(field, index));
-
-                    System.out.println("Getting column " + fieldName);
-                    System.out.println("Table size : " + Database.getInstance().getTables().size());
-                    System.out.println("Columns size : " + Database.getInstance().getTables().get("test"));
                     Column column = Database.getInstance().getTables().get("test").getColumns().get(fieldName);
-                    System.out.println("INDEX - " + index);
                     if(column.storedhere()) {
-                        column.addValue(index, val);
+                        column.addValue(i, val);
                     }
 
                 } else {
                     Group nestedGroup = g.getGroup(field, index);
-                    printGroup(nestedGroup, prefix + fieldName + ".");
+                    printGroup(nestedGroup, prefix + fieldName + ".", i);
                 }
             }
         }
