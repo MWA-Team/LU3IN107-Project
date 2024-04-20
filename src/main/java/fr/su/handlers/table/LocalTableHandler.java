@@ -14,11 +14,15 @@ public class LocalTableHandler implements TableHandler {
         Database database = Database.getInstance();
 
         Table table = new Table(tableBody.getTableName());
+        System.out.println("Creating table " + table.getName());
+        System.out.println("Table columns size : " + table.getColumns().size());
 
         for(TableController.TableParameter tableParameter : tableBody.getColumns()) {
 
-            table.getColumns().put(UUID.randomUUID(), new Column(tableParameter.getName(), String.class));
+            table.getColumns().put(tableParameter.getName(), new Column(tableParameter.getName(), String.class));
         }
+
+        System.out.println("Table columns size : " + table.getColumns().size());
 
         database.addTable(table);
     }

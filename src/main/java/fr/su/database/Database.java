@@ -20,9 +20,6 @@ public class Database {
 
     private static class Instance{
         private static final Database INSTANCE = new Database();
-        //Meme démarche vu en cours
-        // pour garantir qu'une seule instance de la base de données est créée
-        // même dans un environnement multi-threadé.
     }
 
     private HashMap<String, Table> tables;
@@ -41,6 +38,7 @@ public class Database {
 
     public void addTable(Table table) {
 
+        System.out.println("Added " + table + " to the tables");
         this.tables.put(table.getName(), table);
     }
 

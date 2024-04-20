@@ -1,24 +1,54 @@
 package fr.su.controllers;
 
-import fr.su.handlers.ForwardingManager;
-import jakarta.inject.Inject;
+import fr.su.handlers.insertion.LocalInsertionHandler;
+import fr.su.handlers.insertion.RemoteInsertionHandler;
+import fr.su.utils.exceptions.TableColumnSizeException;
+import fr.su.utils.exceptions.WrongTableFormatException;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
 import java.util.List;
 
 @Path("/insert")
 public class TableInsertion {
 
-    @Inject
-    ForwardingManager forwardingManager;
+    private final LocalInsertionHandler localInsertionHandler = new LocalInsertionHandler();
+    private final RemoteInsertionHandler remoteInsertionHandler = new RemoteInsertionHandler();
 
     @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    public Response getFile(String body) throws IOException {
+    @Consumes(MediaType.APPLICATION_OCTET_STREAM)
+    public Object insertion(InputStream inputStream) {
+        try {
+            int responseCode = localInsertionHandler.insert(inputStream);
 
+            if (responseCode == 200) {
+                Map<String, Map<Integer, Object>> parquetData = localInsertionHandler.parseParquet();
+                parquetData.forEach((column, values) -> {
+                    System.out.println("Column: " + column);
+                    values.forEach((row, value) -> {
+                        System.out.println("Row " + row + ": " + value);
+                    });
+                });
+                return "OK";
+            } else {
+                return "Error during insertion";
+            }
+        } catch (WrongTableFormatException e) {
+            e.printStackTrace();
+            return "Error: " + e.getMessage();
+        }
+
+
+
+   /*           verifier si c'est parquet avec PAR1
+                save le parquet sous forme de fichier
+                valider le shema du parquet avec le shema de notre db
+            }*/
         /**
          *
          * EXEMPLE
@@ -36,6 +66,9 @@ public class TableInsertion {
          *
          *
          */
+
+        //int resRemote = remoteInsertionHandler.insert(inputStream);
+        //Test, ajouter un message et implémenter un système d'annulation si un des forward a échoué
         Response response = Response.status(200).entity("This is fine").build();
         Response forward = forwardingManager.forwardPost(body);
         // If forward is null, the query was not forwarded, else check the status code and deal with it
