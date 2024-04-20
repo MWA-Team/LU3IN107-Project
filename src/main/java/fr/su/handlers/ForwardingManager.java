@@ -7,6 +7,9 @@ import jakarta.inject.Singleton;
 import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
@@ -34,7 +37,7 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    public Object forwardPost(String body) throws IOException {
+    public Response forwardPost(String body) throws IOException {
         return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, String data) -> {
             return proxy.post(signature, id, data);
         });
@@ -46,7 +49,7 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    public Object forwardPut(String body) throws IOException {
+    public Response forwardPut(String body) throws IOException {
         return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, String data) -> {
             return proxy.put(signature, id, data);
         });
@@ -58,7 +61,7 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    public Object forwardGet(String body) throws IOException {
+    public Response forwardGet(String body) throws IOException {
         return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, String data) -> {
             return proxy.get(signature, id, data);
         });
@@ -73,18 +76,18 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    private Object forwardQuery(String body, ProxyLambda lambda) throws IOException {
+    private Response forwardQuery(String body, ProxyLambda lambda) throws IOException {
         /*
         All server use a header as a signature. If this signature isn't found, we can assume that a client made the query.
          */
         String serverSignature = context.request().headers().get("Server-Signature");
         if (serverSignature != null && !serverSignature.isEmpty()) {
-            return "Query is coming from another server !";
+            return null;
         }
 
-        Integer id = 2;
+        int id = 2;
         String localAddr = context.request().localAddress().hostAddress();
-        List<Object> retval = new ArrayList<>();
+        List<Response> responses = new ArrayList<>();
         for (String ip : ips) {
             if (isLocalMachine(ip))
                 continue;
@@ -92,11 +95,22 @@ public class ForwardingManager {
                 System.out.println("Forwarding happened once.");
                 URI newUri = URI.create("http://" + ip + ":8080" + context.request().uri());
                 ForwardingProxy proxy = RestClientBuilder.newBuilder().baseUri(newUri).build(ForwardingProxy.class);
-                retval.add(lambda.call(proxy, localAddr, id.toString(), body));
+                responses.add(lambda.call(proxy, localAddr, Integer.toString(id), body));
                 id++;
             }
         }
-        return "Query from \"reel client\" and forwarding may have happened (refer to above logs)";
+        
+        // Here, manage error codes and how to re-build the content for the Response
+        List<Object> entities = new ArrayList<>();
+        List<Object> errors = new ArrayList<>();
+        for (Response r : responses) {
+            if (r.getStatus() != HttpStatus.OK_200)
+                errors.add(r.getEntity());
+            else
+                entities.add(r.getEntity());
+        }
+        Response response = errors.isEmpty() ? Response.status(404).entity(errors).build() : Response.status(Response.Status.BAD_REQUEST).entity(entities).build();
+        return response;
     }
 
     /**

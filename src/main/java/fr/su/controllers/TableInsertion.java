@@ -6,11 +6,13 @@ import fr.su.utils.exceptions.TableColumnSizeException;
 import fr.su.utils.exceptions.WrongTableFormatException;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
+import java.util.List;
 
 @Path("/insert")
 public class TableInsertion {
@@ -64,8 +66,13 @@ public class TableInsertion {
          *
          *
          */
+
         //int resRemote = remoteInsertionHandler.insert(inputStream);
         //Test, ajouter un message et implémenter un système d'annulation si un des forward a échoué
+        Response response = Response.status(200).entity("This is fine").build();
+        Response forward = forwardingManager.forwardPost(body);
+        // If forward is null, the query was not forwarded, else check the status code and deal with it
+        return forward == null ? response : forward;
     }
 
 }
