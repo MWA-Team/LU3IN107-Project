@@ -33,6 +33,12 @@ public class DebugController {
 
             }
 
+            System.out.println("First column");
+            for(int i = 0; i < table.getColumns().get("area").getValues().size(); i++) {
+
+                System.out.println(table.getColumns().get("area").getValues().get(i));
+            }
+
         }
 
         return sb.toString();
