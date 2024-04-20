@@ -22,7 +22,7 @@ public class TableInsertion {
 
     @POST
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
-    public Object insertion(InputStream inputStream) {
+    public String insertion(InputStream inputStream) {
         try {
             int responseCode = localInsertionHandler.insert(inputStream);
 
@@ -69,10 +69,11 @@ public class TableInsertion {
 
         //int resRemote = remoteInsertionHandler.insert(inputStream);
         //Test, ajouter un message et implémenter un système d'annulation si un des forward a échoué
-        Response response = Response.status(200).entity("This is fine").build();
-        Response forward = forwardingManager.forwardPost(body);
+        //Response response = Response.status(200).entity("This is fine").build();
+        //Response forward = forwardingManager.forwardPost(body);
         // If forward is null, the query was not forwarded, else check the status code and deal with it
-        return forward == null ? response : forward;
+        //return forward == null ? response : forward;
+
     }
 
 }
