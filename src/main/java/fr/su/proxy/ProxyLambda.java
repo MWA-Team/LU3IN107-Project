@@ -9,6 +9,6 @@ import java.util.concurrent.Callable;
 @FunctionalInterface
 public interface ProxyLambda {
 
-    Response call(ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, String body);
+    Response call(ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object body);
 
 }

@@ -5,13 +5,15 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
+import java.io.InputStream;
+
 @RegisterRestClient
 public interface ForwardingProxy {
 
     @POST
     // @Produces("...")
     @Consumes(MediaType.APPLICATION_JSON)
-    Response post(@HeaderParam ("Server-Signature") String signature, @QueryParam("server_id") String id, String body);
+    Response post(@HeaderParam ("Server-Signature") String signature, @QueryParam("server_id") String id, InputStream body);
 
     @GET
     // Produces("...")

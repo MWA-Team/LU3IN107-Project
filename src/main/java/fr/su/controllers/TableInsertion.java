@@ -4,6 +4,7 @@ import fr.su.handlers.insertion.LocalInsertionHandler;
 import fr.su.handlers.insertion.RemoteInsertionHandler;
 import fr.su.utils.exceptions.TableColumnSizeException;
 import fr.su.utils.exceptions.WrongTableFormatException;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -18,14 +19,16 @@ import java.util.List;
 public class TableInsertion {
 
     private final LocalInsertionHandler localInsertionHandler = new LocalInsertionHandler();
-    private final RemoteInsertionHandler remoteInsertionHandler = new RemoteInsertionHandler();
+
+    @Inject
+    RemoteInsertionHandler remoteInsertionHandler;
 
     @POST
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     public String insertion(InputStream inputStream) {
         try {
             int responseCode = localInsertionHandler.insert(inputStream);
-
+            remoteInsertionHandler.insert(inputStream);
             if (responseCode == 200) {
                 Map<String, Map<Integer, Object>> parquetData = localInsertionHandler.parseParquet();
                 parquetData.forEach((column, values) -> {
@@ -41,6 +44,8 @@ public class TableInsertion {
         } catch (WrongTableFormatException e) {
             e.printStackTrace();
             return "Error: " + e.getMessage();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
 
 

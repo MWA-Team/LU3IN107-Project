@@ -14,6 +14,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,9 +38,9 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    public Response forwardPost(String body) throws IOException {
-        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, String data) -> {
-            return proxy.post(signature, id, data);
+    public Response forwardPost(InputStream body) throws IOException {
+        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
+            return proxy.post(signature, id, (InputStream) data);
         });
     }
 
@@ -49,9 +50,9 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    public Response forwardPut(String body) throws IOException {
-        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, String data) -> {
-            return proxy.put(signature, id, data);
+    public Response forwardPut(Object body) throws IOException {
+        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
+            return proxy.put(signature, id, (String) data);
         });
     }
 
@@ -61,9 +62,9 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    public Response forwardGet(String body) throws IOException {
-        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, String data) -> {
-            return proxy.get(signature, id, data);
+    public Response forwardGet(Object body) throws IOException {
+        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
+            return proxy.get(signature, id, (String) data);
         });
     }
 
@@ -76,7 +77,7 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    private Response forwardQuery(String body, ProxyLambda lambda) throws IOException {
+    private Response forwardQuery(Object body, ProxyLambda lambda) throws IOException {
         /*
         All server use a header as a signature. If this signature isn't found, we can assume that a client made the query.
          */
