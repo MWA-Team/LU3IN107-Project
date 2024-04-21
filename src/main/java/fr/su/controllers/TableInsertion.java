@@ -10,6 +10,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
@@ -25,10 +26,10 @@ public class TableInsertion {
 
     @POST
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
-    public String insertion(InputStream inputStream) {
+    public String insertion(File file) {
         try {
-            int responseCode = localInsertionHandler.insert(inputStream);
-            remoteInsertionHandler.insert(inputStream);
+            int responseCode = localInsertionHandler.insert(file);
+            remoteInsertionHandler.insert(file);
             if (responseCode == 200) {
                 Map<String, Map<Integer, Object>> parquetData = localInsertionHandler.parseParquet();
                 parquetData.forEach((column, values) -> {

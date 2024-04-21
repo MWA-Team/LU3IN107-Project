@@ -13,6 +13,7 @@ import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.*;
@@ -38,9 +39,9 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    public Response forwardPost(InputStream body) throws IOException {
+    public Response forwardPost(File body) throws IOException {
         return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
-            return proxy.post(signature, id, (InputStream) data);
+            return proxy.post(signature, id, (File) data);
         });
     }
 

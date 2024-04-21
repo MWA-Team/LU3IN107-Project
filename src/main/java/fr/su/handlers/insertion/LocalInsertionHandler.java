@@ -32,24 +32,23 @@ public class LocalInsertionHandler implements InsertionHandler {
     //public static boolean isParquetFile à faire
 
     @Override
-    public int insert(InputStream inputStream) throws WrongTableFormatException {
+    public int insert(File file) throws WrongTableFormatException {
+
         File tempFile = null;
         try {
-            tempFile = File.createTempFile("insertion", ".parquet");
-            try (OutputStream outputStream = new FileOutputStream(tempFile)) {
-                int bytesRead;
-                byte[] buffer = new byte[1024];
-                while ((bytesRead = inputStream.read(buffer)) != -1) {
-                    outputStream.write(buffer, 0, bytesRead);
+            //tempFile = File.createTempFile("insertion", ".parquet");
+            try (Scanner scanner = new Scanner(file)) {
+                while (scanner.hasNextLine()) {
+                    System.out.println(scanner.nextLine());
                 }
             }
-            String absolutePath = tempFile.getAbsolutePath();
+            //String absolutePath = tempFile.getAbsolutePath();
             //if(!validateSchema(absolutePath))
                 //throw  new WrongTableFormatException();
 
-            handlerFile(absolutePath);
+            handlerFile(file.getAbsolutePath());
             parquetData = parseParquet();
-            System.out.println(getTableSchema(absolutePath));
+            System.out.println(getTableSchema(file.getAbsolutePath()));
             return 200;
         } catch (IOException e) {
             e.printStackTrace();
