@@ -13,7 +13,7 @@ public interface ForwardingProxy {
 
     @POST
     // @Produces("...")
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     Response post(@HeaderParam ("Server-Signature") String signature, @QueryParam("server_id") String id, File body);
 
     @GET
