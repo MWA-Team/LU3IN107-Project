@@ -5,7 +5,6 @@ import fr.su.utils.exceptions.WrongTableFormatException;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 
 public interface InsertionHandler {
 

@@ -4,7 +4,10 @@ import fr.su.database.Column;
 import fr.su.database.Database;
 import fr.su.database.Table;
 import fr.su.utils.exceptions.WrongTableFormatException;
+import jakarta.inject.Singleton;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.parquet.column.ColumnDescriptor;
 import org.apache.parquet.column.page.PageReadStore;
 import org.apache.parquet.example.data.Group;
 import org.apache.parquet.example.data.simple.convert.GroupRecordConverter;
@@ -17,67 +20,48 @@ import org.apache.parquet.io.RecordReader;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.Type;
 
-import javax.xml.crypto.Data;
-import java.io.*;
-import java.nio.file.Files;
-import java.util.*;
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
+@Singleton
 public class LocalInsertionHandler implements InsertionHandler {
-
-    //private final org.apache.hadoop.fs.Path path = new org.apache.hadoop.fs.Path("insertion.parquet");
-
-    private Map<String, Map<Integer, Object>> parquetData;
-
-
-    //public static boolean isParquetFile à faire
 
     @Override
     public int insert(File file) throws WrongTableFormatException {
-
-        File tempFile = null;
-        try {
-            //tempFile = File.createTempFile("insertion", ".parquet");
-            try (Scanner scanner = new Scanner(file)) {
-                while (scanner.hasNextLine()) {
-                    System.out.println(scanner.nextLine());
-                }
+        /*try (Scanner scanner = new Scanner(file)) {
+            while (scanner.hasNextLine()) {
+                System.out.println(scanner.nextLine());
             }
-            //String absolutePath = tempFile.getAbsolutePath();
-            //if(!validateSchema(absolutePath))
-                //throw  new WrongTableFormatException();
-
-            handlerFile(file.getAbsolutePath());
-            parquetData = parseParquet();
-            System.out.println(getTableSchema(file.getAbsolutePath()));
-            return 200;
+        }*/
+        String absolutePath = file.getAbsolutePath();
+        List<ColumnDescriptor> columns = null;
+        try {
+            columns = getTableColumns(absolutePath);
         } catch (IOException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        } finally {
-            /*if (tempFile != null) {
-                try {
-                    Files.delete(tempFile.toPath());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }*/
+            return 403;
         }
+
+        handlerFile(absolutePath, columns);
+        return 200;
     }
 
     public Map<String, Map<Integer, Object>> parseParquet() {
-        Map<String, Map<Integer, Object>> dataMap = new HashMap<>();
+        Map<String, Map<Integer, Object>> parquetData = new HashMap<>();
 
         try {
             if (parquetData != null) {
-                dataMap.putAll(parquetData);
+                parquetData.putAll(parquetData);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return dataMap;
+        return parquetData;
     }
 
-    private void handlerFile(String absolutePath) {
+    private void handlerFile(String absolutePath, List<ColumnDescriptor> columns) {
         Configuration conf = new Configuration();
 
         try {
@@ -85,100 +69,73 @@ public class LocalInsertionHandler implements InsertionHandler {
             MessageType schema = readFooter.getFileMetaData().getSchema();
             ParquetFileReader r = new ParquetFileReader(conf, new org.apache.hadoop.fs.Path(absolutePath), readFooter);
 
-            PageReadStore pages = null;
+            PageReadStore pages;
+            int page = 0;
             try {
                 while (null != (pages = r.readNextRowGroup())) {
-                    final long rows = pages.getRowCount();
+                    long rows = pages.getRowCount();
                     System.out.println("Number of rows: " + rows);
 
-                    final MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(schema);
-                    final RecordReader<Group> recordReader = columnIO.getRecordReader(pages, new GroupRecordConverter(schema));
-                    for (int i = 0; i < rows; i++) {
-                        final Group g = recordReader.read();
-                        printGroup(g, "", i);
-                        System.out.println("-----");
-                    }
+                    MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(schema);
+                    RecordReader<Group> recordReader = columnIO.getRecordReader(pages, new GroupRecordConverter(schema));
 
+                    for (int i = 0; i < rows; i++) {
+                        Group g = recordReader.read();
+                        addGroup(g, "", i, page);
+                    }
                 }
             } finally {
                 r.close();
             }
-
         } catch (IOException e) {
             System.out.println("Error reading parquet file.");
             e.printStackTrace();
         }
     }
 
-    private List<String> getTableSchema(String absolutePath) {
-        List<String> columnList = new ArrayList<>();
-
-        Configuration conf = new Configuration();
-
-        try {
-            ParquetMetadata readFooter = ParquetFileReader.readFooter(conf, new org.apache.hadoop.fs.Path(absolutePath), ParquetMetadataConverter.NO_FILTER);
-            MessageType schema = readFooter.getFileMetaData().getSchema();
-
-            List<Type> fields = schema.getFields();
-            for (Type field : fields) {
-                columnList.add(field.getName());
-            }
-        } catch (IOException e) {
-            System.out.println("Error reading parquet file.");
-            e.printStackTrace();
-        }
-
-        return columnList;
-    }
-
-
-    private static void printGroup(Group g, String prefix, int i) {
+    private static void addGroup(Group g, String prefix, int index, int page) {
         int fieldCount = g.getType().getFieldCount();
+
         for (int field = 0; field < fieldCount; field++) {
-            int valueCount = g.getFieldRepetitionCount(field);
             Type fieldType = g.getType().getType(field);
             String fieldName = fieldType.getName();
+            Column column = Database.getInstance().getTables().get("test").getColumns().get(fieldName);
 
-            for (int index = 0; index < valueCount; index++) {
+            if (column != null) {
+                if (!column.stored())
+                    continue;
                 if (fieldType.isPrimitive()) {
-
-                    String val = g.getValueToString(field, index);
-
-                    Column column = Database.getInstance().getTables().get("test").getColumns().get(fieldName);
-                    if(column.storedhere()) {
-                        column.addValue(i, val);
-                    }
-
+                    column.addValue(index, g.getValueToString(field, page));
                 } else {
                     Group nestedGroup = g.getGroup(field, index);
-                    printGroup(nestedGroup, prefix + fieldName + ".", i);
+                    addGroup(nestedGroup, prefix + fieldName + ".", index, page);
                 }
             }
         }
     }
 
-    public boolean validateSchema(String absolutePath) {
-        List<String> parquetSchema = getTableSchema(absolutePath);
+    public boolean validateSchema(String absolutePath) throws IOException {
+        List<ColumnDescriptor> parquetSchema = getTableColumns(absolutePath);
         Map<String, Table> databaseTables = Database.getInstance().getTables();
 
         if (parquetSchema.size() != databaseTables.size()) {
             return false;
         }
 
-        for (String tableName : parquetSchema) {
+        for (ColumnDescriptor tableName : parquetSchema) {
             if (!databaseTables.containsKey(tableName)) {
                 return false;
             }
 
             Table table = databaseTables.get(tableName);
             Map<String, Column> tableColumns = table.getColumns();
-            List<String> parquetTableColumns = getTableColumns(absolutePath, tableName);
+            List<ColumnDescriptor> parquetTableColumns = getTableColumns(absolutePath);
 
             if (parquetTableColumns.size() != tableColumns.size()) {
                 return false;
             }
 
-            for (String columnName : parquetTableColumns) {
+            for (ColumnDescriptor columnName : parquetTableColumns) {
                 if (!tableColumns.containsKey(columnName)) {
                     return false;
                 }
@@ -187,31 +144,9 @@ public class LocalInsertionHandler implements InsertionHandler {
         return true;
     }
 
-    private List<String> getTableColumns(String absolutePath, String tableName) {
-        List<String> tableColumns = new ArrayList<>();
-
-        Configuration conf = new Configuration();
-
-        try {
-            ParquetMetadata readFooter = ParquetFileReader.readFooter(conf, new org.apache.hadoop.fs.Path(absolutePath), ParquetMetadataConverter.NO_FILTER);
-            MessageType schema = readFooter.getFileMetaData().getSchema();
-
-            List<Type> fields = schema.getFields();
-            for (Type field : fields) {
-                if (field.getName().equals(tableName)) {
-                    List<Type> columns = field.asGroupType().getFields();
-                    for (Type column : columns) {
-                        tableColumns.add(column.getName());
-                    }
-                    break;
-                }
-            }
-        } catch (IOException e) {
-            System.out.println("Error parsing parquet");
-            e.printStackTrace();
-        }
-
-        return tableColumns;
+    private List<ColumnDescriptor> getTableColumns(String absolutePath) throws IOException {
+        ParquetMetadata readFooter = ParquetFileReader.readFooter(new Configuration(), new Path(absolutePath), ParquetMetadataConverter.NO_FILTER);
+        return readFooter == null ? null : readFooter.getFileMetaData().getSchema().getColumns();
     }
 
 }

@@ -1,14 +1,13 @@
 package fr.su.handlers.insertion;
 
 import fr.su.handlers.ForwardingManager;
-import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 
-@ApplicationScoped
+@Singleton
 public class RemoteInsertionHandler implements InsertionHandler {
 
     @Inject
@@ -17,8 +16,8 @@ public class RemoteInsertionHandler implements InsertionHandler {
     @Override
     public int insert(File file) throws IOException {
 
-        forwardingManager.forwardPost(file);
+        forwardingManager.forwardInsert(file);
 
-        return 200; //doit retourner 200 si toutes les requêtes "forwarded" ont retourné 200
+        return 200; // code par defaut à changer
     }
 }

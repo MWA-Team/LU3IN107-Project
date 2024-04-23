@@ -3,21 +3,26 @@ package fr.su.controllers;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import fr.su.handlers.table.LocalTableHandler;
 import fr.su.handlers.table.RemoteTableHandler;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 
+import java.io.IOException;
 import java.util.List;
 
 @Path("table")
 public class TableController {
 
-    private final LocalTableHandler localTableHandler = new LocalTableHandler();
-    private final RemoteTableHandler remoteTableHandler = new RemoteTableHandler();
+    @Inject
+    LocalTableHandler localTableHandler;
+
+    @Inject
+    RemoteTableHandler remoteTableHandler;
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces({MediaType.APPLICATION_JSON})
-    public TableBody table(TableBody tableBody) {
+    public TableBody table(TableBody tableBody) throws IOException {
 
         localTableHandler.createTable(tableBody);
         //TODO Operations

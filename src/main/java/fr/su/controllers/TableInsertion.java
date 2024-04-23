@@ -2,24 +2,20 @@ package fr.su.controllers;
 
 import fr.su.handlers.insertion.LocalInsertionHandler;
 import fr.su.handlers.insertion.RemoteInsertionHandler;
-import fr.su.utils.exceptions.TableColumnSizeException;
 import fr.su.utils.exceptions.WrongTableFormatException;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
-
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Map;
-import java.util.List;
 
 @Path("/insert")
 public class TableInsertion {
 
-    private final LocalInsertionHandler localInsertionHandler = new LocalInsertionHandler();
+    @Inject
+    LocalInsertionHandler localInsertionHandler;
 
     @Inject
     RemoteInsertionHandler remoteInsertionHandler;
@@ -48,10 +44,7 @@ public class TableInsertion {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
-
-
-   /*           verifier si c'est parquet avec PAR1
+            /*verifier si c'est parquet avec PAR1
                 save le parquet sous forme de fichier
                 valider le shema du parquet avec le shema de notre db
             }*/

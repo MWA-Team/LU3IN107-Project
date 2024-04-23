@@ -2,12 +2,13 @@ package fr.su.handlers;
 
 import fr.su.proxy.ForwardingProxy;
 import fr.su.proxy.ProxyLambda;
+import fr.su.controllers.TableController.TableBody;
+
 import io.vertx.ext.web.RoutingContext;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -15,12 +16,8 @@ import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.List;
+import java.util.*;
 
 @Singleton
 public class ForwardingManager {
@@ -39,9 +36,9 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    public Response forwardPost(File body) throws IOException {
+    public Response forwardInsert(File body) throws IOException {
         return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
-            return proxy.post(signature, id, (File) data);
+            return proxy.insert(signature, id, (File) data);
         });
     }
 
@@ -51,9 +48,9 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    public Response forwardPut(Object body) throws IOException {
+    public Response forwardCreate(TableBody body) throws IOException {
         return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
-            return proxy.put(signature, id, (String) data);
+            return proxy.create(signature, id, (TableBody) data);
         });
     }
 
@@ -63,9 +60,9 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    public Response forwardGet(Object body) throws IOException {
+    public Response forwardSelect(Object body) throws IOException {
         return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
-            return proxy.get(signature, id, (String) data);
+            return proxy.select(signature, id, (String) data);
         });
     }
 

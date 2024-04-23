@@ -4,8 +4,6 @@ import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Response;
 
-import java.util.concurrent.Callable;
-
 @FunctionalInterface
 public interface ProxyLambda {
 
