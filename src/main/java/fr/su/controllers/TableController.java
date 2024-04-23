@@ -1,5 +1,6 @@
 package fr.su.controllers;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import fr.su.handlers.table.LocalTableHandler;
 import fr.su.handlers.table.RemoteTableHandler;
@@ -23,11 +24,8 @@ public class TableController {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces({MediaType.APPLICATION_JSON})
     public TableBody table(TableBody tableBody) throws IOException {
-
         localTableHandler.createTable(tableBody);
-        //TODO Operations
         remoteTableHandler.createTable(tableBody);
-
         return tableBody;
     }
 

@@ -19,7 +19,7 @@ public interface ForwardingProxy {
     Response select(@HeaderParam ("Server-Signature") String signature, @QueryParam("server_id") String id, String body);
 
     @POST
-    @Consumes(MediaType.APPLICATION_OCTET_STREAM)
-    Response create(@HeaderParam ("Server-Signature") String signature, @QueryParam("server_id") String id, TableBody body);
+    @Consumes(MediaType.APPLICATION_JSON)
+    Response create(@HeaderParam ("Server-Signature") String signature, @QueryParam("server_id") String id, String body);
 
 }

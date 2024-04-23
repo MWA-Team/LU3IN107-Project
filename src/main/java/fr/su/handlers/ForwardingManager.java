@@ -1,5 +1,7 @@
 package fr.su.handlers;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import fr.su.proxy.ForwardingProxy;
 import fr.su.proxy.ProxyLambda;
 import fr.su.controllers.TableController.TableBody;
@@ -48,9 +50,9 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    public Response forwardCreate(TableBody body) throws IOException {
+    public Response forwardCreate(String body) throws IOException {
         return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
-            return proxy.create(signature, id, (TableBody) data);
+            return proxy.create(signature, id, data.toString());
         });
     }
 
@@ -60,9 +62,9 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    public Response forwardSelect(Object body) throws IOException {
+    public Response forwardSelect(String body) throws IOException {
         return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
-            return proxy.select(signature, id, (String) data);
+            return proxy.select(signature, id, data.toString());
         });
     }
 

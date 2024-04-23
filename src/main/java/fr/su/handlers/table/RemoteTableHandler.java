@@ -1,5 +1,7 @@
 package fr.su.handlers.table;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import fr.su.controllers.TableController.TableBody;
 import fr.su.handlers.ForwardingManager;
 import jakarta.inject.Inject;
@@ -16,6 +18,8 @@ public class RemoteTableHandler implements TableHandler {
 
     @Override
     public Response createTable(TableBody tableBody) throws IOException {
-        return forwardingManager.forwardCreate(tableBody);
+        ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
+        String json = ow.writeValueAsString(tableBody);
+        return forwardingManager.forwardCreate(json);
     }
 }
