@@ -33,7 +33,7 @@ public class LocalTableHandler implements TableHandler {
         int id = 1;
         String server_id = context.request().params().get("server_id");
         if (server_id != null)
-            id = Integer.getInteger(server_id);
+            id = Integer.parseInt(server_id);
 
         int nbFields = 0;
         int startingIndex = 0;
