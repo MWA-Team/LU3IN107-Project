@@ -50,8 +50,10 @@ public class TableSelection{
             JsonObject rowObject = new JsonObject();
             for (Column column : finaleResponse.getColumns()) {
 
+                if(!selectBody.getColumns().contains(column.getName())) continue;
+
                 Object value = column.getValues().get(i);
-                rowObject.addProperty(column.getName(), value.toString());
+                rowObject.addProperty(column.getName(), value == null ? "" : value.toString());
 
 
 

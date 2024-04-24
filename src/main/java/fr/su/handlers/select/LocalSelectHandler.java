@@ -6,6 +6,7 @@ import fr.su.database.Database;
 import fr.su.handlers.select.response.SelectResponse;
 import jakarta.inject.Singleton;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Singleton
@@ -19,34 +20,57 @@ public class LocalSelectHandler implements SelectHandler {
         SelectResponse selectResponse = new SelectResponse();
 
         Database database = Database.getInstance();
-        for(Column column : database.getTables().get(selectBody.getTable()).getColumns().values()) {
+        List<Column> columns = new ArrayList<>();
+
+        //We load firstly columns that will reduce amount of quantity
+        for(Column columns1 : database.getTables().get(selectBody.getTable()).getColumns().values()) {
+            if(selectBody.getWhere().keySet().contains(columns1.getName())) {
+                columns.add(columns1);
+            }
+        }
+
+        //We load columns without any 'where' clause after
+        for(Column columns1 : database.getTables().get(selectBody.getTable()).getColumns().values()) {
+            if(selectBody.getColumns().contains(columns1.getName())) {
+                columns.add(columns1);
+            }
+        }
+
+
+        for(Column column : columns) {
+
+            System.out.println(column.getName());
 
             Column newColumn = new Column(column.getName(), String.class, true);
 
-            if(columnsToEvaluate.contains(column.getName()) || toShow.contains(column.getName())) {
+            selectResponse.getColumns().add(newColumn);
 
-                selectResponse.getColumns().add(newColumn);
+            if(columnsToEvaluate.contains(column.getName())) {
 
-                if(columnsToEvaluate.contains(column.getName())) {
+                String compare = selectBody.getWhere().get(column.getName()).getValue();
+                TableSelection.Operand operand = selectBody.getWhere().get(column.getName()).getOperand();
 
-                    String compare = selectBody.getWhere().get(column.getName()).getValue();
-                    TableSelection.Operand operand = selectBody.getWhere().get(column.getName()).getOperand();
+                if((columnsToEvaluate.contains(column.getName()) && operand.equals(TableSelection.Operand.EQUALS))) {
 
-                    if(operand.equals(TableSelection.Operand.EQUALS)) {
+                    for(int i = 0; i < column.getValues().size(); i++) {
 
-                        for(int i = 0; i < column.getValues().size(); i++) {
-
-                            String val = (String) column.getValues().get(i);
-                            if(val.equals(compare)) {
-                                System.out.println("addeing " + val);
-                                newColumn.addValue(i, val);
-                                selectResponse.getIndexes().add(i);
-                            }
+                        String val = (String) column.getValues().get(i);
+                        if(val.equals(compare)) {
+                            newColumn.addValue(i, val);
+                            selectResponse.getIndexes().add(i);
+                            System.out.println("B " + selectResponse.getIndexes().size());
                         }
                     }
+                }
 
+            } else if(toShow.contains(column.getName())){
 
+                System.out.println("a1 " + selectResponse.getIndexes().size());
+                for(int i : selectResponse.getIndexes()) {
 
+                    System.out.println("for column " + column.getName() + " we store " + column.getValues().get(i));
+                    String val = (String) column.getValues().get(i);
+                    newColumn.addValue(i, val);
                 }
             }
         }
