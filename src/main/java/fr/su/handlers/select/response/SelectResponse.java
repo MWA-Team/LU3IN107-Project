@@ -26,10 +26,10 @@ public class SelectResponse {
 
     public SelectResponse merge(List<SelectResponse> selectResponse) {
         SelectResponse retval = new SelectResponse();
-        retval.indexes.addAll(this.indexes);
+        selectResponse.add(this);
 
-        // Adding columns
-        retval.columns.addAll(this.columns);
+        retval.getIndexes().addAll(indexes);
+
         for (SelectResponse response : selectResponse) {
             if (response == null)
                 continue;
@@ -38,19 +38,15 @@ public class SelectResponse {
 
         // Adding rows
         for (Integer index : this.indexes) {
-            boolean add = true;
+
             for (SelectResponse response : selectResponse) {
                 if (response == null)
                     continue;
-                if (response.indexes.contains(index)) {
-                    add = true;
-                } else {
-                    add = false;
+                if (!response.indexes.contains(index)) {
+                    retval.indexes.remove(index);
                 }
             }
-            if (add) {
-                retval.indexes.add(index);
-            }
+
         }
 
         return retval;

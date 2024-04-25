@@ -66,7 +66,7 @@ public class LocalSelectHandler implements SelectHandler {
             } else if(toShow.contains(column.getName())){
 
                 // System.out.println("a1 " + selectResponse.getIndexes().size());
-                if(selectResponse.getIndexes() == null) {
+                if(selectResponse.getIndexes().isEmpty()) {
 
                     for(int i = 0; i < column.getValues().size(); i++) { //pas opti
                         String val = (String) column.getValues().get(i);
