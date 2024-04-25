@@ -48,7 +48,7 @@ public class TableSelection{
 
         JsonObject resultObject = new JsonObject();
         JsonArray dataArray = new JsonArray();
-        for (int i : finaleResponse.getIndexes()) {
+        for (long i : finaleResponse.getIndexes()) {
             JsonObject rowObject = new JsonObject();
             for (Column column : finaleResponse.getColumns()) {
 
