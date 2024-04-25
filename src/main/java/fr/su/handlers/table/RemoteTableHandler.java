@@ -21,6 +21,9 @@ public class RemoteTableHandler implements TableHandler {
         ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
         String json = ow.writeValueAsString(tableBody);
         Response response = forwardingManager.forwardCreate(json);
+        if (response == null)
+            return tableBody;
+        // Attention, TO DO : parse the response as it is a list of objects
         return response.getStatus() != 200 ? null : (TableBody) response.getEntity();
     }
 }
