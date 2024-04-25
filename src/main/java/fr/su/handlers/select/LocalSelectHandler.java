@@ -71,6 +71,7 @@ public class LocalSelectHandler implements SelectHandler {
                     for(int i = 0; i < column.getValues().size(); i++) { //pas opti
                         String val = (String) column.getValues().get(i);
                         newColumn.addValue(i, val);
+                        selectResponse.getIndexes().add(i);
                     }
 
                     continue;
