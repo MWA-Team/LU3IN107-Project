@@ -36,6 +36,7 @@ public class TableSelection{
         Database database = Database.getInstance();
         Table table = database.getTables().get(selectBody.table);
         if (table == null) {
+            System.out.println("Here is first");
             return Response.status(404).entity("Table '" + selectBody.table + "' not found.").build();
         }
 
@@ -60,8 +61,8 @@ public class TableSelection{
             dataArray.add(rowObject);
         }
         resultObject.add("data", dataArray);
-
-        return Response.status(200).entity(resultObject).type("application/json").build();
+        System.out.println("Here is last");
+        return Response.status(200).entity(resultObject.toString()).type(MediaType.APPLICATION_JSON).build();
 
         /*JsonObject jsonObject = JsonParser.parseString(jsonBody).getAsJsonObject();
         String tableName = jsonObject.get("table").getAsString();
