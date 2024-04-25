@@ -110,7 +110,7 @@ public class ForwardingManager {
             else
                 entities.add(r.getEntity());
         }
-        Response response = errors.isEmpty() ? Response.status(404).entity(errors).build() : Response.status(Response.Status.BAD_REQUEST).entity(entities).build();
+        Response response = !errors.isEmpty() ? Response.status(404).entity(errors).build() : Response.status(200).entity(entities).build();
         return response;
     }
 

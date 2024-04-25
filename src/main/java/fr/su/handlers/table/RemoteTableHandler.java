@@ -9,6 +9,7 @@ import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.Response;
 
 import java.io.IOException;
+import java.util.List;
 
 @Singleton
 public class RemoteTableHandler implements TableHandler {
@@ -24,6 +25,9 @@ public class RemoteTableHandler implements TableHandler {
         if (response == null)
             return tableBody;
         // Attention, TO DO : parse the response as it is a list of objects
-        return response.getStatus() != 200 ? null : (TableBody) response.getEntity();
+
+        List<TableBody> res2 = (List<TableBody>) response.getEntity();
+
+        return response.getStatus() != 200 || res2.isEmpty() ? null : res2.get(0);
     }
 }
