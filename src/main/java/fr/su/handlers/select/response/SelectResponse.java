@@ -36,8 +36,10 @@ public class SelectResponse {
 
         // Adding rows
         for (Integer index : this.indexes) {
-            boolean add = false;
+            boolean add = true;
             for (SelectResponse response : selectResponse) {
+                if (response == null)
+                    continue;
                 if (response.indexes.contains(index)) {
                     add = true;
                 } else {

@@ -20,10 +20,12 @@ public class RemoteSelectHandler implements SelectHandler {
     ForwardingManager forwardingManager;
 
     @Override
-    public SelectResponse select(SelectBody selectBody) throws IOException, JsonProcessingException {
+    public SelectResponse select(SelectBody selectBody) throws IOException {
         ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
         String json = ow.writeValueAsString(selectBody);
         Response response = forwardingManager.forwardSelect(json);
+        if (response == null)
+            return null;
         Object entity = response.getStatus() != 200 ? null : response.getEntity();
         List<SelectResponse> list = (List<SelectResponse>) entity;
         SelectResponse last = list.get(list.size() - 1);
