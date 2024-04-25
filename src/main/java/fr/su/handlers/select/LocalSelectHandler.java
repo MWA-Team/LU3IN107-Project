@@ -52,7 +52,7 @@ public class LocalSelectHandler implements SelectHandler {
 
                 if((columnsToEvaluate.contains(column.getName()) && operand.equals(TableSelection.Operand.EQUALS))) {
 
-                    for(int i = 0; i < column.getValues().size(); i++) {
+                    for(long i = 0; i < column.getValues().size(); i++) {
 
                         String val = (String) column.getValues().get(i);
                         if(val.equals(compare)) {
@@ -68,7 +68,7 @@ public class LocalSelectHandler implements SelectHandler {
                 // System.out.println("a1 " + selectResponse.getIndexes().size());
                 if(selectResponse.getIndexes().isEmpty()) {
 
-                    for(int i = 0; i < column.getValues().size(); i++) { //pas opti
+                    for(long i = 0; i < column.getValues().size(); i++) { //pas opti
                         String val = (String) column.getValues().get(i);
                         newColumn.addValue(i, val);
                         selectResponse.getIndexes().add(i);
@@ -77,7 +77,7 @@ public class LocalSelectHandler implements SelectHandler {
                     continue;
                 }
 
-                for(int i : selectResponse.getIndexes()) {
+                for(long i : selectResponse.getIndexes()) {
 
                     // System.out.println("for column " + column.getName() + " we store " + column.getValues().get(i));
                     String val = (String) column.getValues().get(i);
