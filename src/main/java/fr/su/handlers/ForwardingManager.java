@@ -96,7 +96,9 @@ public class ForwardingManager {
                 System.out.println("Forwarding happened once.");
                 URI newUri = URI.create("http://" + ip + ":8080" + context.request().uri());
                 ForwardingProxy proxy = RestClientBuilder.newBuilder().baseUri(newUri).build(ForwardingProxy.class);
-                responses.add(lambda.call(proxy, localAddr, Integer.toString(id), body));
+                Response response = lambda.call(proxy, localAddr, Integer.toString(id), body);
+                System.out.println("Response : " + response.getStatus() + "\nWith body : " + response.getEntity());
+                responses.add(response);
                 id++;
             }
         }
