@@ -39,6 +39,8 @@ public class SelectResponse {
 
         // Adding all indexes that match both
         for (SelectResponse response : responses) {
+            if (response == null)
+                continue;
             JsonObject rJson = response.toJson(selectBody);
             JsonArray rData = rJson.getAsJsonArray("data");
             if (rData == null)
@@ -82,8 +84,9 @@ public class SelectResponse {
 
         merged.indexes.addAll(indexes);
 
+        // Managing indexes
         for (SelectResponse response : responses) {
-            if (response.indexes.isEmpty())
+            if (response == null || response.indexes.isEmpty())
                 continue;
             for (Long index : response.indexes) {
                 if (!merged.indexes.isEmpty() && !merged.indexes.contains(index))
@@ -93,6 +96,7 @@ public class SelectResponse {
             }
         }
 
+        // Managing columns
         for (SelectResponse response : responses) {
             for (Column column : Database.getInstance().getTables().get("test").getColumns().values()) {
                 Column newColumn = new Column(column.getName(), String.class, true);
