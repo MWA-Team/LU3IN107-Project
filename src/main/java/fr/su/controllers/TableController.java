@@ -7,7 +7,9 @@ import fr.su.handlers.table.RemoteTableHandler;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
+import javax.print.attribute.standard.Media;
 import java.io.IOException;
 import java.util.List;
 
@@ -22,11 +24,11 @@ public class TableController {
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
-    @Produces({MediaType.APPLICATION_JSON})
-    public TableBody table(TableBody tableBody) throws IOException {
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response table(TableBody tableBody) throws IOException {
         localTableHandler.createTable(tableBody);
         remoteTableHandler.createTable(tableBody);
-        return tableBody;
+        return Response.status(200).entity(tableBody).type(MediaType.APPLICATION_JSON).build();
     }
 
     public static class TableBody {

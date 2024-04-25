@@ -6,6 +6,7 @@ import fr.su.utils.exceptions.WrongTableFormatException;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,7 +23,7 @@ public class TableInsertion {
 
     @POST
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
-    public String insertion(File file) {
+    public Response insertion(File file) {
         try {
             int responseCode = 200;
             localInsertionHandler.insert(file);
@@ -35,13 +36,13 @@ public class TableInsertion {
                         System.out.println("Row " + row + ": " + value);
                     });
                 });
-                return "OK";
+                return Response.ok().build();
             } else {
-                return "Error during insertion";
+                return Response.status(500).build();
             }
         } catch (WrongTableFormatException e) {
             e.printStackTrace();
-            return "Error: " + e.getMessage();
+            return Response.status(500).entity("Error: " + e.getMessage()).build();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

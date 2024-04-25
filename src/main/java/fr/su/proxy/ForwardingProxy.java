@@ -17,7 +17,6 @@ public interface ForwardingProxy {
 
     @GET
     @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
     Response select(@HeaderParam ("Server-Signature") String signature, @QueryParam("server_id") String id, String body);
 
     @POST

@@ -2,6 +2,7 @@ package fr.su.handlers;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import fr.su.handlers.select.response.SelectResponse;
 import fr.su.proxy.ForwardingProxy;
 import fr.su.proxy.ProxyLambda;
 import fr.su.controllers.TableController.TableBody;
@@ -96,9 +97,8 @@ public class ForwardingManager {
                 System.out.println("Forwarding happened once.");
                 URI newUri = URI.create("http://" + ip + ":8080" + context.request().uri());
                 ForwardingProxy proxy = RestClientBuilder.newBuilder().baseUri(newUri).build(ForwardingProxy.class);
-                Response response = lambda.call(proxy, localAddr, Integer.toString(id), body);
-                System.out.println("Response : " + response.getStatus() + "\nWith body : " + response.getEntity());
-                responses.add(response);
+                Response r = lambda.call(proxy, localAddr, Integer.toString(id), body);
+                responses.add(r);
                 id++;
             }
         }
@@ -108,9 +108,9 @@ public class ForwardingManager {
         List<Object> errors = new ArrayList<>();
         for (Response r : responses) {
             if (r.getStatus() != HttpStatus.OK_200)
-                errors.add(r.getEntity());
+                errors.add(r.readEntity(String.class));
             else
-                entities.add(r.getEntity());
+                entities.add(r.readEntity(String.class));
         }
         Response response = !errors.isEmpty() ? Response.status(404).entity(errors).build() : Response.status(200).entity(entities).build();
         return response;
