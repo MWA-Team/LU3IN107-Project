@@ -10,11 +10,11 @@ public class Column<T> {
     private String name;
     private boolean stored;
 
-    private HashMap<Integer, T> values; //Liste des valeurs dans cette colonne (vide si c'est pas serverIdentifier == serverActuel sinon contient les données)
+    private HashMap<Long, T> values; //Liste des valeurs dans cette colonne (vide si c'est pas serverIdentifier == serverActuel sinon contient les données)
 
     public Column(String name, T type, boolean stored) {
         this.name = name;
-        this.values = new HashMap<Integer, T>();
+        this.values = new HashMap<Long, T>();
         this.stored = stored;
     }
 
@@ -22,11 +22,11 @@ public class Column<T> {
         return name;
     }
 
-    public HashMap<Integer, T> getValues() {
+    public HashMap<Long, T> getValues() {
         return values;
     }
 
-    public void addValue(int index, T val) {
+    public void addValue(long index, T val) {
         //System.out.println("Added value at index " + index + " with value " + val + " in column " + name);
         this.values.put(index, val);
     }

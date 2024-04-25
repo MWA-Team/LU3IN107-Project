@@ -8,11 +8,19 @@ import jakarta.inject.Singleton;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.column.ColumnDescriptor;
+import org.apache.parquet.column.ColumnReadStore;
+import org.apache.parquet.column.ColumnReader;
+import org.apache.parquet.column.impl.ColumnReadStoreImpl;
+import org.apache.parquet.column.page.DataPage;
 import org.apache.parquet.column.page.PageReadStore;
+import org.apache.parquet.column.page.PageReader;
 import org.apache.parquet.example.data.Group;
 import org.apache.parquet.example.data.simple.convert.GroupRecordConverter;
 import org.apache.parquet.format.converter.ParquetMetadataConverter;
 import org.apache.parquet.hadoop.ParquetFileReader;
+import org.apache.parquet.hadoop.metadata.BlockMetaData;
+import org.apache.parquet.hadoop.metadata.ColumnChunkMetaData;
+import org.apache.parquet.hadoop.metadata.FileMetaData;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.io.ColumnIOFactory;
 import org.apache.parquet.io.MessageColumnIO;
@@ -65,23 +73,21 @@ public class LocalInsertionHandler implements InsertionHandler {
         Configuration conf = new Configuration();
 
         try {
-            ParquetMetadata readFooter = ParquetFileReader.readFooter(conf, new org.apache.hadoop.fs.Path(absolutePath), ParquetMetadataConverter.NO_FILTER);
+            ParquetMetadata readFooter = ParquetFileReader.readFooter(conf, new Path(absolutePath), ParquetMetadataConverter.NO_FILTER);
             MessageType schema = readFooter.getFileMetaData().getSchema();
-            ParquetFileReader r = new ParquetFileReader(conf, new org.apache.hadoop.fs.Path(absolutePath), readFooter);
+            ParquetFileReader r = new ParquetFileReader(conf, new Path(absolutePath), readFooter);
 
-            PageReadStore pages;
-            int page = 0;
+            PageReadStore pages = null;
+            long count = 0;
             try {
                 while (null != (pages = r.readNextRowGroup())) {
-                    long rows = pages.getRowCount();
-                    System.out.println("Number of rows: " + rows);
+                    final long rows = pages.getRowCount();
 
                     MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(schema);
-                    RecordReader<Group> recordReader = columnIO.getRecordReader(pages, new GroupRecordConverter(schema));
-
-                    for (int i = 0; i < rows; i++) {
-                        Group g = recordReader.read();
-                        addGroup(g, "", i, page);
+                    RecordReader recordReader = columnIO.getRecordReader(pages, new GroupRecordConverter(schema));
+                    for (long i = 0; i < rows; i++) {
+                        Group g = (Group) recordReader.read();
+                        addGroup(g, count++);
                     }
                 }
             } finally {
@@ -93,22 +99,21 @@ public class LocalInsertionHandler implements InsertionHandler {
         }
     }
 
-    private static void addGroup(Group g, String prefix, int index, int page) {
+    private static void addGroup(Group g, long index) {
         int fieldCount = g.getType().getFieldCount();
-
         for (int field = 0; field < fieldCount; field++) {
             Type fieldType = g.getType().getType(field);
             String fieldName = fieldType.getName();
-            Column column = Database.getInstance().getTables().get("test").getColumns().get(fieldName);
 
+            Column column = Database.getInstance().getTables().get("test").getColumns().get(fieldName);
             if (column != null) {
                 if (!column.stored())
                     continue;
                 if (fieldType.isPrimitive()) {
-                    column.addValue(index, g.getValueToString(field, page));
+                    column.addValue(index, g.getValueToString(field, 0));
                 } else {
-                    Group nestedGroup = g.getGroup(field, index);
-                    addGroup(nestedGroup, prefix + fieldName + ".", index, page);
+                    Group nestedGroup = g.getGroup(field, 0);
+                    addGroup(nestedGroup, index);
                 }
             }
         }

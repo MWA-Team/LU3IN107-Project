@@ -45,35 +45,6 @@ public class TableInsertion {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-            /*verifier si c'est parquet avec PAR1
-                save le parquet sous forme de fichier
-                valider le shema du parquet avec le shema de notre db
-            }*/
-        /**
-         *
-         * EXEMPLE
-         *
-         * ApacheReaderFile f;
-         *
-         * List<String> strct = f.getStructure(); //Toutes les colonnes
-         * HashMap<String, List<String>> content;
-         *
-         * for(String column : strct)
-         *
-         *      content.put(column, new ArrayList<>()); //création d'une colonne vide
-         *
-         *      content.get(column).addAll(f.getColumn(column));
-         *
-         *
-         */
-
-        //int resRemote = remoteInsertionHandler.insert(inputStream);
-        //Test, ajouter un message et implémenter un système d'annulation si un des forward a échoué
-        //Response response = Response.status(200).entity("This is fine").build();
-        //Response forward = forwardingManager.forwardPost(body);
-        // If forward is null, the query was not forwarded, else check the status code and deal with it
-        //return forward == null ? response : forward;
-
     }
 
 }
