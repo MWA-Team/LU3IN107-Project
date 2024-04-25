@@ -86,7 +86,7 @@ public class ForwardingManager {
             return null;
         }
 
-        int id = 2;
+        int id = 1;
         String localAddr = context.request().localAddress().hostAddress();
         List<Response> responses = new ArrayList<>();
         for (String ip : ips) {

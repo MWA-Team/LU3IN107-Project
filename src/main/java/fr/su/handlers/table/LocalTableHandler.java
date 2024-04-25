@@ -30,25 +30,27 @@ public class LocalTableHandler implements TableHandler {
         // This part decides which columns of the parquet file is stored in this server based on the list of ips
         int nbColumns = tableBody.getColumns().size();
         int nbIps = ips.size();
-        int id = 1;
+        int id = 0;
         String server_id = context.request().params().get("server_id");
         if (server_id != null)
             id = Integer.parseInt(server_id);
-
+        // Can we use modulo instead ???
         int nbFields = 0;
         int startingIndex = 0;
 
-        if (id == 1)
+        if (id == 0)
             nbFields = (int) Math.ceil(nbColumns / (nbIps * 1.0));
         else
             nbFields = (int) Math.floor(nbColumns / (nbIps * 1.0));
 
-        for (int i = 1; i < id; i++) {
-            if (i == 1)
+        for (int i = 0; i < id; i++) {
+            if (i == 0)
                 startingIndex += (int) Math.ceil(nbColumns / (nbIps * 1.0));
             else
                 startingIndex += (int) Math.floor(nbColumns / (nbIps * 1.0));
         }
+        System.out.println("nbFields: " + nbFields);
+        System.out.println("startingIndex: " + startingIndex);
 
         // Adding all columns and effectively stored columns
         for(int i = 0; i < tableBody.getColumns().size(); i++) {
