@@ -38,11 +38,12 @@ public class TableSelection{
             return "Table '" + selectBody.table + "' not found.";
         }
 
-
         SelectResponse localResponse = localSelectHandler.select(selectBody);
         SelectResponse remoteResponse = remoteSelectHandler.select(selectBody);
 
-        SelectResponse finaleResponse = localResponse.merge(remoteResponse); //Pour l'instant en attendant le réseau
+        List<SelectResponse> list = new ArrayList<>();
+        list.add(remoteResponse);
+        SelectResponse finaleResponse = localResponse.merge(list);
 
         JsonObject resultObject = new JsonObject();
         JsonArray dataArray = new JsonArray();

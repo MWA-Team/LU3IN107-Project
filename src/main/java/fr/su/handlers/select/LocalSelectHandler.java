@@ -39,7 +39,7 @@ public class LocalSelectHandler implements SelectHandler {
 
         for(Column column : columns) {
 
-            System.out.println(column.getName());
+            // System.out.println(column.getName());
 
             Column newColumn = new Column(column.getName(), String.class, true);
 
@@ -58,17 +58,17 @@ public class LocalSelectHandler implements SelectHandler {
                         if(val.equals(compare)) {
                             newColumn.addValue(i, val);
                             selectResponse.getIndexes().add(i);
-                            System.out.println("B " + selectResponse.getIndexes().size());
+                            // System.out.println("B " + selectResponse.getIndexes().size());
                         }
                     }
                 }
 
             } else if(toShow.contains(column.getName())){
 
-                System.out.println("a1 " + selectResponse.getIndexes().size());
+                // System.out.println("a1 " + selectResponse.getIndexes().size());
                 for(int i : selectResponse.getIndexes()) {
 
-                    System.out.println("for column " + column.getName() + " we store " + column.getValues().get(i));
+                    // System.out.println("for column " + column.getName() + " we store " + column.getValues().get(i));
                     String val = (String) column.getValues().get(i);
                     newColumn.addValue(i, val);
                 }

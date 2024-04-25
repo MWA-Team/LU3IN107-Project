@@ -17,9 +17,10 @@ public class RemoteTableHandler implements TableHandler {
     ForwardingManager forwardingManager;
 
     @Override
-    public Response createTable(TableBody tableBody) throws IOException {
+    public TableBody createTable(TableBody tableBody) throws IOException {
         ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
         String json = ow.writeValueAsString(tableBody);
-        return forwardingManager.forwardCreate(json);
+        Response response = forwardingManager.forwardCreate(json);
+        return response.getStatus() != 200 ? null : (TableBody) response.getEntity();
     }
 }

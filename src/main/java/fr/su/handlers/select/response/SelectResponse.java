@@ -12,13 +12,10 @@ public class SelectResponse {
      */
 
 
-    private int status;
     private Set<Integer> indexes;
     private List<Column> columns;
 
     public SelectResponse() {
-
-        this.status = 400;
         this.indexes = new HashSet<>();
         this.columns = new ArrayList<>();
     }
@@ -27,11 +24,32 @@ public class SelectResponse {
 
     public List<Column> getColumns() { return columns; }
 
-    public SelectResponse merge(SelectResponse selectResponse) {
+    public SelectResponse merge(List<SelectResponse> selectResponse) {
+        SelectResponse retval = new SelectResponse();
+        retval.indexes.addAll(this.indexes);
 
+        // Adding columns
+        retval.columns.addAll(this.columns);
+        for (SelectResponse response : selectResponse) {
+            retval.columns.addAll(response.columns);
+        }
 
-        //TODO
-        return this;
+        // Adding rows
+        for (Integer index : this.indexes) {
+            boolean add = false;
+            for (SelectResponse response : selectResponse) {
+                if (response.indexes.contains(index)) {
+                    add = true;
+                } else {
+                    add = false;
+                }
+            }
+            if (add) {
+                retval.indexes.add(index);
+            }
+        }
+
+        return retval;
     };
 
 }

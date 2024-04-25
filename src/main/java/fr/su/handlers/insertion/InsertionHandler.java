@@ -8,5 +8,5 @@ import java.io.IOException;
 
 public interface InsertionHandler {
 
-    public int insert(File file) throws IOException, WrongTableFormatException, TableColumnSizeException; //Return status code for validation
+    public int insert(File file) throws IOException, WrongTableFormatException, TableColumnSizeException;
 }

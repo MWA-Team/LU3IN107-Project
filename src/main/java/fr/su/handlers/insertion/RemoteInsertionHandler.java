@@ -3,6 +3,7 @@ package fr.su.handlers.insertion;
 import fr.su.handlers.ForwardingManager;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.core.Response;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,9 +16,7 @@ public class RemoteInsertionHandler implements InsertionHandler {
 
     @Override
     public int insert(File file) throws IOException {
-
-        forwardingManager.forwardInsert(file);
-
-        return 200; // code par defaut à changer
+        Response response = forwardingManager.forwardInsert(file);
+        return response.getStatus();
     }
 }

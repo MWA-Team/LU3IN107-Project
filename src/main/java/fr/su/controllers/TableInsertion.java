@@ -24,7 +24,8 @@ public class TableInsertion {
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     public String insertion(File file) {
         try {
-            int responseCode = localInsertionHandler.insert(file);
+            int responseCode = 200;
+            localInsertionHandler.insert(file);
             remoteInsertionHandler.insert(file);
             if (responseCode == 200) {
                 Map<String, Map<Integer, Object>> parquetData = localInsertionHandler.parseParquet();

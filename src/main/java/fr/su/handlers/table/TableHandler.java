@@ -7,6 +7,6 @@ import java.io.IOException;
 
 public interface TableHandler {
 
-    public Response createTable(TableController.TableBody tableBody) throws IOException;
+    public TableController.TableBody createTable(TableController.TableBody tableBody) throws IOException;
 
 }

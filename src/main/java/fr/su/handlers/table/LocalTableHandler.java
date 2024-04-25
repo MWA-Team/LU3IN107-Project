@@ -23,7 +23,7 @@ public class LocalTableHandler implements TableHandler {
     List<String> ips;
 
     @Override
-    public Response createTable(TableBody tableBody) {
+    public TableBody createTable(TableBody tableBody) {
         Database database = Database.getInstance();
         Table table = new Table(tableBody.getTableName());
 
@@ -62,7 +62,7 @@ public class LocalTableHandler implements TableHandler {
         System.out.println("Table columns size : " + table.getColumns().size());
 
         database.addTable(table);
-        return null;
+        return tableBody;
     }
 
 }
