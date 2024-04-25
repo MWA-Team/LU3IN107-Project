@@ -29,13 +29,6 @@ public class TableInsertion {
             localInsertionHandler.insert(file);
             remoteInsertionHandler.insert(file);
             if (responseCode == 200) {
-                Map<String, Map<Integer, Object>> parquetData = localInsertionHandler.parseParquet();
-                parquetData.forEach((column, values) -> {
-                    System.out.println("Column: " + column);
-                    values.forEach((row, value) -> {
-                        System.out.println("Row " + row + ": " + value);
-                    });
-                });
                 return Response.ok().build();
             } else {
                 return Response.status(500).build();
@@ -49,3 +42,13 @@ public class TableInsertion {
     }
 
 }
+
+   /* Map<String, Map<Integer, Object>> parquetData = localInsertionHandler.parseParquet();
+                parquetData.forEach((column, values) -> {
+                        System.out.println("Column: " + column);
+                        values.forEach((row, value) -> {
+                        System.out.println("Row " + row + ": " + value);
+                        });
+                        });
+
+    */

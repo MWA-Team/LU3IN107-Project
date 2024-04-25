@@ -56,19 +56,6 @@ public class LocalInsertionHandler implements InsertionHandler {
         return 200;
     }
 
-    public Map<String, Map<Integer, Object>> parseParquet() {
-        Map<String, Map<Integer, Object>> parquetData = new HashMap<>();
-
-        try {
-            if (parquetData != null) {
-                parquetData.putAll(parquetData);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return parquetData;
-    }
-
     private void handlerFile(String absolutePath, List<ColumnDescriptor> columns) {
         Configuration conf = new Configuration();
 
@@ -119,6 +106,27 @@ public class LocalInsertionHandler implements InsertionHandler {
         }
     }
 
+    private List<ColumnDescriptor> getTableColumns(String absolutePath) throws IOException {
+        ParquetMetadata readFooter = ParquetFileReader.readFooter(new Configuration(), new Path(absolutePath), ParquetMetadataConverter.NO_FILTER);
+        return readFooter == null ? null : readFooter.getFileMetaData().getSchema().getColumns();
+    }
+
+}
+
+
+  /* public Map<String, Map<Integer, Object>> parseParquet() {
+        Map<String, Map<Integer, Object>> parquetData = new HashMap<>();
+
+        try {
+            if (parquetData != null) {
+                parquetData.putAll(parquetData);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return parquetData;
+    }
+
     public boolean validateSchema(String absolutePath) throws IOException {
         List<ColumnDescriptor> parquetSchema = getTableColumns(absolutePath);
         Map<String, Table> databaseTables = Database.getInstance().getTables();
@@ -149,9 +157,5 @@ public class LocalInsertionHandler implements InsertionHandler {
         return true;
     }
 
-    private List<ColumnDescriptor> getTableColumns(String absolutePath) throws IOException {
-        ParquetMetadata readFooter = ParquetFileReader.readFooter(new Configuration(), new Path(absolutePath), ParquetMetadataConverter.NO_FILTER);
-        return readFooter == null ? null : readFooter.getFileMetaData().getSchema().getColumns();
-    }
 
-}
+    */
