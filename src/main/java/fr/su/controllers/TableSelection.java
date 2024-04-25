@@ -14,6 +14,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import jakarta.ws.rs.core.Response;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -31,11 +32,11 @@ public class TableSelection{
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public String selectColumns(SelectBody selectBody) throws IOException {
+    public Response selectColumns(SelectBody selectBody) throws IOException {
         Database database = Database.getInstance();
         Table table = database.getTables().get(selectBody.table);
         if (table == null) {
-            return "Table '" + selectBody.table + "' not found.";
+            return Response.status(404).entity("Table '" + selectBody.table + "' not found.").build();
         }
 
         SelectResponse localResponse = localSelectHandler.select(selectBody);
@@ -55,15 +56,12 @@ public class TableSelection{
 
                 Object value = column.getValues().get(i);
                 rowObject.addProperty(column.getName(), value == null ? "" : value.toString());
-
-
-
             }
             dataArray.add(rowObject);
         }
         resultObject.add("data", dataArray);
 
-        return resultObject.toString();
+        return Response.status(200).entity(resultObject).type("application/json").build();
 
         /*JsonObject jsonObject = JsonParser.parseString(jsonBody).getAsJsonObject();
         String tableName = jsonObject.get("table").getAsString();

@@ -31,6 +31,8 @@ public class SelectResponse {
         // Adding columns
         retval.columns.addAll(this.columns);
         for (SelectResponse response : selectResponse) {
+            if (response == null)
+                continue;
             retval.columns.addAll(response.columns);
         }
 
