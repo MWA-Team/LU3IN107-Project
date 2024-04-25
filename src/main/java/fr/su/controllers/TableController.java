@@ -53,35 +53,4 @@ public class TableController {
         public String getName() { return this.name; }
     }
 
-
-    /**
-     * Exemple de body
-     * POST
-     *
-     * {
-     *     "tableName":"test",
-     *     "columns": [
-     *
-     *          {
-     *              "columnName": "nom",
-     *              "type": "STRING"
-     *
-     *          },
-     *
-     *          {
-     *              "columnName": "prenom",
-     *              "type": "STRING"
-     *          },
-     *
-     *          {
-     *              "columnName": "age",
-     *              "type": "INTEGER"
-     *          }
-     *     ]
-     *
-     *
-     *
-     * }
-     */
-
 }   

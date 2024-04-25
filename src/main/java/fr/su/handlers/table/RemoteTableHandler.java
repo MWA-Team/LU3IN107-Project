@@ -6,9 +6,11 @@ import fr.su.controllers.TableController.TableBody;
 import fr.su.handlers.ForwardingManager;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.json.Json;
 import jakarta.ws.rs.core.Response;
 
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
 
 @Singleton
@@ -22,11 +24,17 @@ public class RemoteTableHandler implements TableHandler {
         ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
         String json = ow.writeValueAsString(tableBody);
         Response response = forwardingManager.forwardCreate(json);
-        if (response == null)
-            return tableBody;
+        if (response == null || response.getStatus() != 200)
+            return null;
+        List<String> responses = (List<String>) response.getEntity();
+        if (responses.size() == 0)
+            return null;
         // Attention, TO DO : parse the response as it is a list of objects
-        List<TableBody> res2 = (List<TableBody>) response.getEntity();
-
-        return response.getStatus() != 200 || res2.isEmpty() ? null : res2.get(0);
+        ObjectMapper om = new ObjectMapper();
+        List<TableBody> retval = new LinkedList<>();
+        for (String r : responses) {
+            retval.add(om.readValue(r, TableBody.class));
+        }
+        return response.getStatus() != 200 || retval.isEmpty() ? null : retval.get(0);
     }
 }

@@ -14,7 +14,6 @@ public class LocalSelectHandler implements SelectHandler {
 
     @Override
     public SelectResponse select(TableSelection.SelectBody selectBody) {
-
         List<String> toShow = selectBody.getColumns();
         List<String> columnsToEvaluate = selectBody.getWhere().keySet().stream().toList();
         SelectResponse selectResponse = new SelectResponse();
@@ -35,7 +34,6 @@ public class LocalSelectHandler implements SelectHandler {
                 columns.add(columns1);
             }
         }
-
 
         for(Column column : columns) {
 

@@ -46,24 +46,9 @@ public class TableSelection{
 
         List<SelectResponse> list = new ArrayList<>();
         list.add(remoteResponse);
-        SelectResponse finaleResponse = localResponse.merge(list);
+        JsonObject finaleResponse = localResponse.mergeJson(list, selectBody);
 
-        JsonObject resultObject = new JsonObject();
-        JsonArray dataArray = new JsonArray();
-        for (long i : finaleResponse.getIndexes()) {
-            JsonObject rowObject = new JsonObject();
-            for (Column column : finaleResponse.getColumns()) {
-
-                if(!selectBody.getColumns().contains(column.getName())) continue;
-
-                Object value = column.getValues().get(i);
-                rowObject.addProperty(column.getName(), value == null ? "" : value.toString());
-            }
-            dataArray.add(rowObject);
-        }
-        resultObject.add("data", dataArray);
-
-        return Response.status(200).entity(resultObject.toString()).type(MediaType.APPLICATION_JSON).build();
+        return Response.status(200).entity(finaleResponse).type(MediaType.APPLICATION_JSON).build();
 
         /*JsonObject jsonObject = JsonParser.parseString(jsonBody).getAsJsonObject();
         String tableName = jsonObject.get("table").getAsString();
