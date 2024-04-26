@@ -97,7 +97,11 @@ public class LocalInsertionHandler implements InsertionHandler {
                 if (!column.stored())
                     continue;
                 if (fieldType.isPrimitive()) {
-                    column.addValue(index, g.getValueToString(field, 0));
+                    try {
+                        column.addValue(index, g.getValueToString(field, 0));
+                    } catch (Exception e) {
+                        column.addValue(index, "null");
+                    }
                 } else {
                     Group nestedGroup = g.getGroup(field, 0);
                     addGroup(nestedGroup, index);
