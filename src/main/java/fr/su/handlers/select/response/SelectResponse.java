@@ -74,6 +74,8 @@ public class SelectResponse {
     public SelectResponse merge(List<SelectResponse> responses, TableSelection.SelectBody selectBody) {
         SelectResponse merged = new SelectResponse();
 
+        if(responses == null) { return this; }
+
         // Check if current servers had to do a select
         if (indexes.isEmpty()) {
             for (Column column : Database.getInstance().getTables().get("test").getColumns().values()) {
@@ -83,6 +85,7 @@ public class SelectResponse {
         }
 
         merged.indexes.addAll(indexes);
+        merged.columns.addAll(this.columns);
 
         // Managing indexes
         for (SelectResponse response : responses) {
@@ -98,6 +101,7 @@ public class SelectResponse {
 
         // Managing columns
         for (SelectResponse response : responses) {
+            if(response == null) continue;
             for (Column column : Database.getInstance().getTables().get("test").getColumns().values()) {
                 Column newColumn = new Column(column.getName(), String.class, true);
                 for (Column tmp : response.columns) {
@@ -129,6 +133,7 @@ public class SelectResponse {
             dataArray.add(rowObject);
         }
         resultObject.add("data", dataArray);
+        System.out.println(resultObject);
         return resultObject;
     }
 
