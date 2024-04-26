@@ -24,55 +24,6 @@ public class SelectResponse {
 
     public List<Column> getColumns() { return columns; }
 
-    public JsonObject mergeJson(List<SelectResponse> responses, TableSelection.SelectBody selectBody) {
-        JsonObject merged = this.toJson(selectBody);
-        JsonArray data = merged.getAsJsonArray("data");
-        if (data == null)
-            return null;
-
-        // Check if current server add to do a select
-        if (data.isEmpty()) {
-            for (Column column : Database.getInstance().getTables().get("test").getColumns().values()) {
-                if (column.stored() && selectBody.getColumns().contains(column))
-                    return merged;
-            }
-        }
-
-        // Adding all indexes that match both
-        for (SelectResponse response : responses) {
-            if (response == null)
-                continue;
-            JsonObject rJson = response.toJson(selectBody);
-            JsonArray rData = rJson.getAsJsonArray("data");
-            if (rData == null)
-                continue;
-
-            boolean present = false;
-            for (int i = 0; i < data.size(); i++) {
-                JsonObject object = data.get(i).getAsJsonObject();
-                Long index = object.get("index").getAsLong();
-                for (int j = 0; j < rData.size(); j++) {
-                    JsonObject rObject = rData.get(j).getAsJsonObject();
-                    Long rIndex = rObject.get("index").getAsLong();
-                    if (index == rIndex) {
-                        present = true;
-                        for (String columnName : selectBody.getColumns()) {
-                            JsonElement tmp = rObject.get(columnName);
-                            if (tmp == null)
-                                continue;
-                            object.addProperty(columnName, tmp.getAsString());
-                        }
-                        break;
-                    }
-                }
-                if (!present)
-                    data.remove(i);
-            }
-        }
-        return merged;
-    };
-
-
     public SelectResponse merge(List<SelectResponse> responses, TableSelection.SelectBody selectBody) {
         SelectResponse merged = new SelectResponse();
 
@@ -109,6 +60,7 @@ public class SelectResponse {
 
             // Addding all columns
             for (Column column : response.columns) {
+                System.out.println(column.getName());
                 boolean present = false;
                 Column current = null;
                 for (Column tmp : merged.columns) {
@@ -150,38 +102,7 @@ public class SelectResponse {
             dataArray.add(rowObject);
         }
         resultObject.add("data", dataArray);
-        System.out.println(resultObject);
         return resultObject;
-    }
-
-    public static SelectResponse fromJson(JsonObject json) {
-        SelectResponse retval = new SelectResponse();
-        JsonArray data = json.getAsJsonArray("data");
-        if (data == null)
-            return retval;
-
-        for (JsonElement element : data) {
-            JsonObject tmp = element.getAsJsonObject();
-            Long index = tmp.get("index").getAsLong();
-
-            for (Column column : Database.getInstance().getTables().get("test").getColumns().values()) {
-                boolean skip = true;
-                for (Column retcol : retval.columns) {
-                    if (retcol.getName().equals(column.getName())) {
-                        retcol.addValue(index, tmp.get(column.getName()).toString());
-                        skip = false;
-                    }
-                }
-                retval.indexes.add(index);
-                if (skip)
-                    continue;
-                Column newColumn = new Column(column.getName(), String.class, true);
-                newColumn.addValue(index, tmp.get(column.getName()).toString());
-                retval.columns.add(newColumn);
-            }
-        }
-
-        return retval;
     }
 
 }

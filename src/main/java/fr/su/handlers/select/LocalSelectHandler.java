@@ -31,7 +31,8 @@ public class LocalSelectHandler implements SelectHandler {
         //We load columns without any 'where' clause after
         for(Column columns1 : database.getTables().get(selectBody.getTable()).getColumns().values()) {
             if(selectBody.getColumns().contains(columns1.getName())) {
-                columns.add(columns1);
+                if (!columns.contains(columns1))
+                    columns.add(columns1);
             }
         }
 
