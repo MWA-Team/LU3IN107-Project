@@ -30,19 +30,16 @@ public class RemoteSelectHandler implements SelectHandler {
         Response response = forwardingManager.forwardSelect(json);
         if (response == null || response.getStatus() != 200)
             return null;
-        List<String> responses = (List<String>) response.getEntity();
+        List<Response> responses = (List<Response>) response.getEntity();
         if (responses.size() == 0)
             return null;
 
         List<SelectResponse> retval = new LinkedList<>();
-        JsonParser parser = new JsonParser();
 
-        for (String r : responses) {
-            JsonObject tmp = parser.parse(r).getAsJsonObject();
-            retval.add(SelectResponse.fromJson(tmp));
+        for (Response r : responses) {
+            retval.add(r.readEntity(SelectResponse.class));
         }
-        SelectResponse last = retval.get(retval.size() - 1);
-        retval.remove(retval.size() - 1);
+        SelectResponse last = retval.remove(retval.size() - 1);
         return last.merge(retval, selectBody);
     }
 }

@@ -49,36 +49,6 @@ public class TableSelection{
         SelectResponse finaleResponse = localResponse.merge(list, selectBody);
 
         return Response.status(200).entity(finaleResponse).type(MediaType.APPLICATION_JSON).build();
-
-        /*JsonObject jsonObject = JsonParser.parseString(jsonBody).getAsJsonObject();
-        String tableName = jsonObject.get("table").getAsString();
-        JsonArray columnsArray = jsonObject.getAsJsonArray("columns");
-        List<String> columns = new ArrayList<>();
-        for (JsonElement element : columnsArray) {
-            columns.add(element.getAsString());
-        }
-
-        Table table = database.getTables().get(tableName);
-        if (table == null) {
-            return "Table '" + tableName + "' not found.";
-        }
-
-        JsonObject resultObject = new JsonObject();
-        JsonArray dataArray = new JsonArray();
-        for (int i = 0; i < table.getColumns().get(columns.get(0)).getValues().size(); i++) {
-            JsonObject rowObject = new JsonObject();
-            for (String column : columns) {
-                if (table.getColumns().containsKey(column)) {
-                    Object value = table.getColumns().get(column).getValues().get(i);
-                    rowObject.addProperty(column, value.toString());
-                }
-            }
-            dataArray.add(rowObject);
-        }
-        resultObject.add("data", dataArray);
-
-        return resultObject.toString();*/
-
     }
 
     public static class SelectBody {
