@@ -12,6 +12,12 @@ public class Column<T> {
 
     private HashMap<Long, T> values; //Liste des valeurs dans cette colonne (vide si c'est pas serverIdentifier == serverActuel sinon contient les données)
 
+    public Column() {
+        name = "Test";
+        stored = true;
+        values = new HashMap<>();
+    }
+
     public Column(String name, T type, boolean stored) {
         this.name = name;
         this.values = new HashMap<Long, T>();

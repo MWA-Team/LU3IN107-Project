@@ -76,7 +76,7 @@ public class SelectResponse {
 
         if(responses == null) { return this; }
 
-        // Check if current servers had to do a select
+        // Check if current servers had to do a select with condition
         if (indexes.isEmpty()) {
             for (Column column : Database.getInstance().getTables().get("test").getColumns().values()) {
                 if (column.stored() && selectBody.getColumns().contains(column))
@@ -87,31 +87,37 @@ public class SelectResponse {
         merged.indexes.addAll(indexes);
         merged.columns.addAll(this.columns);
 
-        // Managing indexes
         for (SelectResponse response : responses) {
             if (response == null || response.indexes.isEmpty())
                 continue;
+
+            // Indexes
             for (Long index : response.indexes) {
                 if (!merged.indexes.isEmpty() && !merged.indexes.contains(index))
                     merged.indexes.remove(index);
                 else
                     merged.indexes.add(index);
             }
-        }
 
-        // Managing columns
-        for (SelectResponse response : responses) {
-            if(response == null) continue;
-            for (Column column : Database.getInstance().getTables().get("test").getColumns().values()) {
-                Column newColumn = new Column(column.getName(), String.class, true);
-                for (Column tmp : response.columns) {
-                    if (column.getName().equals(tmp.getName())) {
-                        for(Long i : merged.indexes) {
-                            newColumn.addValue(i, tmp.getValues().get(i).toString());
-                        }
+            // Columns
+            for (Column column : response.columns) {
+                boolean present = false;
+                Column current = null;
+                for (Column tmp : merged.columns) {
+                    if (tmp.getName().equals(column.getName())) {
+                        present = true;
+                        current = tmp;
+                        break;
                     }
                 }
-                merged.columns.add(newColumn);
+                if (!present) {
+                    current = new Column(column.getName(), String.class, true);
+                    merged.columns.add(current);
+                }
+
+                for (Long i : merged.indexes) {
+                    current.addValue(i, column.getValues().get(i));
+                }
             }
         }
 
