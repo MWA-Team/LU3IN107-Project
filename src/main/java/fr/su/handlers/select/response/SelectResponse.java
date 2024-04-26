@@ -60,8 +60,8 @@ public class SelectResponse {
 
             // Addding all columns
             for (Column column : response.columns) {
-                System.out.println(column.getName());
-                boolean present = false;
+                boolean presen                System.out.println(column.getName());
+t = false;
                 Column current = null;
                 for (Column tmp : merged.columns) {
                     if (tmp.getName().equals(column.getName())) {
