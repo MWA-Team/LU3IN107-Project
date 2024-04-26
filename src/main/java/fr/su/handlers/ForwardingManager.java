@@ -1,24 +1,26 @@
 package fr.su.handlers;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import fr.su.handlers.select.response.SelectResponse;
 import fr.su.proxy.ForwardingProxy;
 import fr.su.proxy.ProxyLambda;
+import fr.su.controllers.TableController.TableBody;
+
 import io.vertx.ext.web.RoutingContext;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.List;
+import java.util.*;
 
 @Singleton
 public class ForwardingManager {
@@ -37,9 +39,9 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    public Response forwardPost(String body) throws IOException {
-        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, String data) -> {
-            return proxy.post(signature, id, data);
+    public Response forwardInsert(File body) throws IOException {
+        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
+            return proxy.insert(signature, id, (File) data);
         });
     }
 
@@ -49,9 +51,9 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    public Response forwardPut(String body) throws IOException {
-        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, String data) -> {
-            return proxy.put(signature, id, data);
+    public Response forwardCreate(String body) throws IOException {
+        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
+            return proxy.create(signature, id, data.toString());
         });
     }
 
@@ -61,9 +63,9 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    public Response forwardGet(String body) throws IOException {
-        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, String data) -> {
-            return proxy.get(signature, id, data);
+    public Response forwardSelect(String body) throws IOException {
+        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
+            return proxy.select(signature, id, data.toString());
         });
     }
 
@@ -76,7 +78,7 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    private Response forwardQuery(String body, ProxyLambda lambda) throws IOException {
+    private Response forwardQuery(Object body, ProxyLambda lambda) throws IOException {
         /*
         All server use a header as a signature. If this signature isn't found, we can assume that a client made the query.
          */
@@ -85,7 +87,7 @@ public class ForwardingManager {
             return null;
         }
 
-        int id = 2;
+        int id = 1;
         String localAddr = context.request().localAddress().hostAddress();
         List<Response> responses = new ArrayList<>();
         for (String ip : ips) {
@@ -95,21 +97,22 @@ public class ForwardingManager {
                 System.out.println("Forwarding happened once.");
                 URI newUri = URI.create("http://" + ip + ":8080" + context.request().uri());
                 ForwardingProxy proxy = RestClientBuilder.newBuilder().baseUri(newUri).build(ForwardingProxy.class);
-                responses.add(lambda.call(proxy, localAddr, Integer.toString(id), body));
+                Response r = lambda.call(proxy, localAddr, Integer.toString(id), body);
+                responses.add(r);
                 id++;
             }
         }
         
         // Here, manage error codes and how to re-build the content for the Response
-        List<Object> entities = new ArrayList<>();
-        List<Object> errors = new ArrayList<>();
+        List<Response> entities = new ArrayList<>();
+        List<Response> errors = new ArrayList<>();
         for (Response r : responses) {
             if (r.getStatus() != HttpStatus.OK_200)
-                errors.add(r.getEntity());
+                errors.add(r);
             else
-                entities.add(r.getEntity());
+                entities.add(r);
         }
-        Response response = errors.isEmpty() ? Response.status(404).entity(errors).build() : Response.status(Response.Status.BAD_REQUEST).entity(entities).build();
+        Response response = !errors.isEmpty() ? Response.status(404).entity(errors).build() : Response.status(200).entity(entities).build();
         return response;
     }
 

@@ -18,24 +18,24 @@ public class DebugController {
         Database database = Database.getInstance();
 
         StringBuilder sb = new StringBuilder();
-
         sb.append("Database tables : " + database.getTables().size());
         sb.append("\n");
 
         for(Table table : database.getTables().values()) {
-
             sb.append("Table : " + table.getName() + " : " + table.getColumns().values().stream().map(all -> all.getName()).collect(Collectors.joining(", ")));
 
             System.out.println("First line : ");
-            for(String keys : table.getColumns().keySet()) {
 
-                System.out.println("Clef : " + keys + " | Value : " + table.getColumns().get(keys).getValues().get(0));
+//            System.out.println("Types :");
+//            for (Column column : table.getColumns().values())
+//                System.out.println(column.getName() + " " + column.storedHere());
 
+            for(String key : table.getColumns().keySet()) {
+                System.out.println("Clef : " + key + " | Value : " + table.getColumns().get(key).getValues().get(0));
             }
 
             System.out.println("First column");
             for(int i = 0; i < table.getColumns().get("area").getValues().size(); i++) {
-
                 System.out.println(table.getColumns().get("area").getValues().get(i));
             }
 

@@ -2,20 +2,21 @@ package fr.su.handlers.insertion;
 
 import fr.su.handlers.ForwardingManager;
 import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.core.Response;
 
+import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 
+@Singleton
 public class RemoteInsertionHandler implements InsertionHandler {
 
     @Inject
     ForwardingManager forwardingManager;
 
     @Override
-    public int insert(InputStream inputStream) throws IOException {
-
-        //forwardingManager.forwardPost(inputStream.toString()); //à changer, forwardPost doit accepter un InputStream
-
-        return 200; //doit retourner 200 si toutes les requêtes "forwarded" ont retourné 200
+    public int insert(File file) throws IOException {
+        Response response = forwardingManager.forwardInsert(file);
+        return response == null ? 200 : response.getStatus();
     }
 }

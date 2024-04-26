@@ -1,14 +1,12 @@
 package fr.su.database;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class Table {
 
     private String name;
 
-    private HashMap<String, Column> columns; //Columns by name
+    private HashMap<String, Column> columns;
 
     public Table(String name) {
         this.name = name;
@@ -20,4 +18,5 @@ public class Table {
     public HashMap<String, Column> getColumns() {
         return columns;
     }
+
 }

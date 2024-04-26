@@ -1,46 +1,43 @@
 package fr.su.database;
 
 import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
 
 public class Column<T> {
 
     //Cassandra
     //orienté colonne vs orienté ligne
 
-    private UUID serverIdentifier; //Où est située cette colonne ?
+    private String name;
+    private boolean stored;
 
-    private String name; //Nom de la colonne
+    private HashMap<Long, T> values; //Liste des valeurs dans cette colonne (vide si c'est pas serverIdentifier == serverActuel sinon contient les données)
 
-    private HashMap<Integer, T> values; //Liste des valeurs dans cette colonne (vide si c'est pas serverIdentifier == serverActuel sinon contient les données)
-
-    public Column(String name, T type) {
-
-        this.name = name;
-        this.values = new HashMap<Integer, T>();
+    public Column() {
+        name = "Test";
+        stored = true;
+        values = new HashMap<>();
     }
 
-    public UUID getServerIdentifier() {
-        return serverIdentifier;
+    public Column(String name, T type, boolean stored) {
+        this.name = name;
+        this.values = new HashMap<Long, T>();
+        this.stored = stored;
     }
 
     public String getName() {
         return name;
     }
 
-    public HashMap<Integer, T> getValues() {
+    public HashMap<Long, T> getValues() {
         return values;
     }
 
-    public void addValue(int index, T val) {
-
-        System.out.println("Added value at index " + index + " with value " + val + " in column " + name);
+    public void addValue(long index, T val) {
+        //System.out.println("Added value at index " + index + " with value " + val + " in column " + name);
         this.values.put(index, val);
     }
 
-    public boolean storedhere() {
-
-        return true; //Retourne si cette colonne est stocké sur ce serveur pour l'instant un seul serveur
+    public boolean stored() {
+        return stored;
     }
 }
