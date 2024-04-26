@@ -33,7 +33,7 @@ public class RemoteTableHandler implements TableHandler {
         ObjectMapper om = new ObjectMapper();
         List<TableBody> retval = new LinkedList<>();
         for (Response r : responses) {
-            retval.add(r.readEntity(TableBody.class));
+            retval.add(om.readValue(r.readEntity(String.class), TableBody.class));
         }
         return response.getStatus() != 200 || retval.isEmpty() ? null : retval.get(0);
     }
