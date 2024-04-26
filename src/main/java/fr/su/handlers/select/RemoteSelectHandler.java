@@ -36,8 +36,9 @@ public class RemoteSelectHandler implements SelectHandler {
 
         List<SelectResponse> retval = new LinkedList<>();
 
+        ObjectMapper om = new ObjectMapper();
         for (Response r : responses) {
-            retval.add(r.readEntity(SelectResponse.class));
+            retval.add(om.readValue(r.readEntity(String.class), SelectResponse.class));
         }
         SelectResponse last = retval.remove(retval.size() - 1);
         return last.merge(retval, selectBody);
