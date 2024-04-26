@@ -46,7 +46,7 @@ public class TableSelection{
 
         List<SelectResponse> list = new ArrayList<>();
         list.add(remoteResponse);
-        JsonObject finaleResponse = localResponse.mergeJson(list, selectBody);
+        SelectResponse finaleResponse = localResponse.merge(list, selectBody);
 
         return Response.status(200).entity(finaleResponse).type(MediaType.APPLICATION_JSON).build();
 
