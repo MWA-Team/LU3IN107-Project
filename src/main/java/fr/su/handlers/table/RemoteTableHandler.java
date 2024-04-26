@@ -26,14 +26,14 @@ public class RemoteTableHandler implements TableHandler {
         Response response = forwardingManager.forwardCreate(json);
         if (response == null || response.getStatus() != 200)
             return null;
-        List<String> responses = (List<String>) response.getEntity();
+        List<Response> responses = (List<Response>) response.getEntity();
         if (responses.size() == 0)
             return null;
-        // Attention, TO DO : parse the response as it is a list of objects
+
         ObjectMapper om = new ObjectMapper();
         List<TableBody> retval = new LinkedList<>();
-        for (String r : responses) {
-            retval.add(om.readValue(r, TableBody.class));
+        for (Response r : responses) {
+            retval.add(r.readEntity(TableBody.class));
         }
         return response.getStatus() != 200 || retval.isEmpty() ? null : retval.get(0);
     }
