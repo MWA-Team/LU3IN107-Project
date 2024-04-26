@@ -5,6 +5,7 @@ import fr.su.controllers.TableSelection;
 import fr.su.database.Column;
 import com.google.gson.JsonArray;
 import fr.su.database.Database;
+import jakarta.transaction.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -71,6 +72,7 @@ public class SelectResponse {
         return merged;
     };
 
+
     public SelectResponse merge(List<SelectResponse> responses, TableSelection.SelectBody selectBody) {
         SelectResponse merged = new SelectResponse();
 
@@ -87,15 +89,16 @@ public class SelectResponse {
         merged.indexes.addAll(indexes);
         merged.columns.addAll(this.columns);
 
-        for (SelectResponse response : responses) {
+        for (int z = 0; z < responses.size(); z++) {
+            SelectResponse response = responses.get(z);
             if (response == null || response.indexes.isEmpty())
                 continue;
 
             //Removing indexes that are not present in both response and merged
-            for (long i : merged.indexes) {
+            for (Object i : merged.indexes.toArray()) {
                 boolean present = false;
-                for (long j : response.indexes) {
-                    if (i == j) {
+                for (Object j : response.indexes.toArray()) {
+                    if (((Long) i).equals(j)) {
                         present = true;
                         break;
                     }
