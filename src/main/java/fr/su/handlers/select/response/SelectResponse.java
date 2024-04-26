@@ -126,7 +126,8 @@ public class SelectResponse {
                 // Getting correct values corresponding to indexes
                 for (Long i : merged.indexes) {
                     Object o = column.getValues().get(i);
-                    current.addValue(i, o != null ? o.toString() : null);
+                    if (o != null)
+                        current.addValue(i, o.toString());
                 }
             }
         }
