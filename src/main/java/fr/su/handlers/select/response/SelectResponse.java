@@ -91,15 +91,20 @@ public class SelectResponse {
             if (response == null || response.indexes.isEmpty())
                 continue;
 
-            // Indexes
-            for (Long index : response.indexes) {
-                if (!merged.indexes.isEmpty() && !merged.indexes.contains(index))
-                    merged.indexes.remove(index);
-                else
-                    merged.indexes.add(index);
+            //Removing indexes that are not present in both response and merged
+            for (long i : merged.indexes) {
+                boolean present = false;
+                for (long j : response.indexes) {
+                    if (i == j) {
+                        present = true;
+                        break;
+                    }
+                }
+                if (!present)
+                    merged.indexes.remove(i);
             }
 
-            // Columns
+            // Addding all columns
             for (Column column : response.columns) {
                 boolean present = false;
                 Column current = null;
@@ -115,8 +120,10 @@ public class SelectResponse {
                     merged.columns.add(current);
                 }
 
+                // Getting correct values corresponding to indexes
                 for (Long i : merged.indexes) {
-                    current.addValue(i, column.getValues().get(i));
+                    Object o = column.getValues().get(i);
+                    current.addValue(i, o != null ? o.toString() : null);
                 }
             }
         }
