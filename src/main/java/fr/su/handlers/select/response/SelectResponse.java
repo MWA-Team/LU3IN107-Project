@@ -1,14 +1,10 @@
 package fr.su.handlers.select.response;
 
-import com.google.gson.*;
 import fr.su.controllers.TableSelection;
 import fr.su.database.Column;
-import com.google.gson.JsonArray;
 import fr.su.database.Database;
-import jakarta.transaction.Transactional;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class SelectResponse {
 
@@ -70,38 +66,20 @@ public class SelectResponse {
                     }
                 }
                 if (!present) {
-                    current = new Column(column.getName(), String.class, true);
+                    current = new Column(column.getName(), true);
                     merged.columns.add(current);
                 }
 
                 // Getting correct values corresponding to indexes
                 for (Long i : merged.indexes) {
-                    Object o = column.getValues().get(i);
+                    Object o = column.getValues();
                     if (o != null)
-                        current.addValue(i, o.toString());
+                        current.addRow(o, i);
                 }
             }
         }
 
         return merged;
     };
-
-    public JsonObject toJson(TableSelection.SelectBody selectBody) {
-        com.google.gson.JsonObject resultObject = new com.google.gson.JsonObject();
-        JsonArray dataArray = new JsonArray();
-        for (long i : getIndexes()) {
-            com.google.gson.JsonObject rowObject = new com.google.gson.JsonObject();
-            for (Column column : getColumns()) {
-                if(!selectBody.getColumns().contains(column))
-                    continue;
-                Object value = column.getValues().get(i);
-                rowObject.addProperty(column.getName(), value == null ? "null" : value.toString());
-            }
-            rowObject.addProperty("index", i);
-            dataArray.add(rowObject);
-        }
-        resultObject.add("data", dataArray);
-        return resultObject;
-    }
 
 }

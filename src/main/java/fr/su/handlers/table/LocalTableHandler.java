@@ -8,9 +8,9 @@ import fr.su.database.Table;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import java.math.BigInteger;
 import java.util.List;
 
 @Singleton
@@ -49,19 +49,36 @@ public class LocalTableHandler implements TableHandler {
             else
                 startingIndex += (int) Math.floor(nbColumns / (nbIps * 1.0));
         }
-        System.out.println("nbFields: " + nbFields);
-        System.out.println("startingIndex: " + startingIndex);
 
         // Adding all columns and effectively stored columns
         for(int i = 0; i < tableBody.getColumns().size(); i++) {
             TableController.TableParameter tableParameter = tableBody.getColumns().get(i);
             boolean stored = i >= startingIndex && i < startingIndex + nbFields;
-            Column newColumn = new Column(tableParameter.getName(), String.class, stored);
+            Column newColumn = null;
+            switch (tableParameter.getType().toLowerCase()) {
+                case "boolean":
+                    newColumn = new Column<Boolean>(tableParameter.getName(), stored);
+                    break;
+                case "int32":
+                    newColumn = new Column<Integer>(tableParameter.getName(), stored);
+                    break;
+                case "int64":
+                    newColumn = new Column<Long>(tableParameter.getName(), stored);
+                    break;
+                case "int96":
+                    newColumn = new Column<BigInteger>(tableParameter.getName(), stored);
+                    break;
+                case "float":
+                    newColumn = new Column<Float>(tableParameter.getName(), stored);
+                    break;
+                case "double":
+                    newColumn = new Column<Double>(tableParameter.getName(), stored);
+                    break;
+                default:
+                    newColumn = new Column<String>(tableParameter.getName(), stored);
+            }
             table.getColumns().put(tableParameter.getName(), newColumn);
         }
-
-        System.out.println("Creating table " + table.getName());
-        System.out.println("Table columns size : " + table.getColumns().size());
 
         database.addTable(table);
         return tableBody;

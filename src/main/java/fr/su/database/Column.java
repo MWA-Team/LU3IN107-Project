@@ -1,40 +1,39 @@
 package fr.su.database;
 
-import java.util.HashMap;
+import java.util.*;
 
 public class Column<T> {
-
-    //Cassandra
-    //orienté colonne vs orienté ligne
 
     private String name;
     private boolean stored;
 
-    private HashMap<Long, T> values; //Liste des valeurs dans cette colonne (vide si c'est pas serverIdentifier == serverActuel sinon contient les données)
+    private HashMap<T, HashSet<Long>> rows; // Linked list are good because we don't access specific indexes and insert data a lot
 
     public Column() {
-        name = "Test";
+        name = "Injected";
         stored = true;
-        values = new HashMap<>();
+        rows = new HashMap<>();
     }
 
-    public Column(String name, T type, boolean stored) {
+    public Column(String name, boolean stored) {
         this.name = name;
-        this.values = new HashMap<Long, T>();
         this.stored = stored;
+        this.rows = new HashMap<>();
     }
 
     public String getName() {
         return name;
     }
 
-    public HashMap<Long, T> getValues() {
-        return values;
+    public Set<T> getValues() {
+        return rows.keySet();
     }
 
-    public void addValue(long index, T val) {
-        //System.out.println("Added value at index " + index + " with value " + val + " in column " + name);
-        this.values.put(index, val);
+    public HashMap<T, HashSet<Long>> getRows() { return rows; }
+
+    public void addRow(T val, long index) {
+        HashSet<Long> row = rows.computeIfAbsent(val, k -> new HashSet<>());
+        row.add(index);
     }
 
     public boolean stored() {

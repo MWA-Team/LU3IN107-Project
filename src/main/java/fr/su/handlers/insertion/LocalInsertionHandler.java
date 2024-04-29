@@ -2,25 +2,16 @@ package fr.su.handlers.insertion;
 
 import fr.su.database.Column;
 import fr.su.database.Database;
-import fr.su.database.Table;
 import fr.su.utils.exceptions.WrongTableFormatException;
 import jakarta.inject.Singleton;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.column.ColumnDescriptor;
-import org.apache.parquet.column.ColumnReadStore;
-import org.apache.parquet.column.ColumnReader;
-import org.apache.parquet.column.impl.ColumnReadStoreImpl;
-import org.apache.parquet.column.page.DataPage;
 import org.apache.parquet.column.page.PageReadStore;
-import org.apache.parquet.column.page.PageReader;
 import org.apache.parquet.example.data.Group;
 import org.apache.parquet.example.data.simple.convert.GroupRecordConverter;
 import org.apache.parquet.format.converter.ParquetMetadataConverter;
 import org.apache.parquet.hadoop.ParquetFileReader;
-import org.apache.parquet.hadoop.metadata.BlockMetaData;
-import org.apache.parquet.hadoop.metadata.ColumnChunkMetaData;
-import org.apache.parquet.hadoop.metadata.FileMetaData;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.io.ColumnIOFactory;
 import org.apache.parquet.io.MessageColumnIO;
@@ -30,9 +21,7 @@ import org.apache.parquet.schema.Type;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Singleton
 public class LocalInsertionHandler implements InsertionHandler {
@@ -98,9 +87,9 @@ public class LocalInsertionHandler implements InsertionHandler {
                     continue;
                 if (fieldType.isPrimitive()) {
                     try {
-                        column.addValue(index, g.getValueToString(field, 0));
+                        column.addRow(g.getValueToString(field, 0), index);
                     } catch (Exception e) {
-                        column.addValue(index, "null");
+                        column.addRow("null", index);
                     }
                 } else {
                     Group nestedGroup = g.getGroup(field, 0);

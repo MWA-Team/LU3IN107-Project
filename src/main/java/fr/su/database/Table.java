@@ -19,4 +19,8 @@ public class Table {
         return columns;
     }
 
+    public void addColumn(Column column) {
+        this.columns.put(column.getName(), column);
+    }
+
 }

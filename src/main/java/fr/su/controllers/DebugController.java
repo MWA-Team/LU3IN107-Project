@@ -31,14 +31,21 @@ public class DebugController {
 //                System.out.println(column.getName() + " " + column.storedHere());
 
             for(String key : table.getColumns().keySet()) {
-                System.out.println("Clef : " + key + " | Value : " + table.getColumns().get(key).getValues().get(0));
+                for (Object o : table.getColumns().get(key).getValues()) {
+                    System.out.println("Clef : " + key + " | Value : " + o);
+                    break;
+                }
             }
 
-            System.out.println("First column");
-            for(int i = 0; i < table.getColumns().get("area").getValues().size(); i++) {
-                System.out.println(table.getColumns().get("area").getValues().get(i));
+            if (table.getColumns().size() >= 1) {
+                System.out.println("First column");
+                for (String key : table.getColumns().keySet()) {
+                    for (Object o : table.getColumns().get(key).getValues()) {
+                        System.out.println(o);
+                    }
+                    break;
+                }
             }
-
         }
 
         return sb.toString();

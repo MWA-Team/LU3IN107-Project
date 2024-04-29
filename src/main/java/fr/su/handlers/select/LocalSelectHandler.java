@@ -7,6 +7,7 @@ import fr.su.handlers.select.response.SelectResponse;
 import jakarta.inject.Singleton;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 @Singleton
@@ -37,10 +38,7 @@ public class LocalSelectHandler implements SelectHandler {
         }
 
         for(Column column : columns) {
-
-            // System.out.println(column.getName());
-
-            Column newColumn = new Column(column.getName(), String.class, true);
+            Column newColumn = new Column(column.getName(), true);
 
             selectResponse.getColumns().add(newColumn);
 
@@ -51,36 +49,31 @@ public class LocalSelectHandler implements SelectHandler {
 
                 if((columnsToEvaluate.contains(column.getName()) && operand.equals(TableSelection.Operand.EQUALS))) {
 
-                    for(long i = 0; i < column.getValues().size(); i++) {
-
-                        String val = (String) column.getValues().get(i);
-                        if(val.equals(compare)) {
-                            newColumn.addValue(i, val);
-                            selectResponse.getIndexes().add(i);
-                            // System.out.println("B " + selectResponse.getIndexes().size());
+                    for(Object o : column.getValues()) {
+                        if(o.equals(compare)) {
+                            for (Long index : (HashSet<Long>) column.getRows().get(o)) {
+                                newColumn.addRow(o, index);
+                                selectResponse.getIndexes().add(index);
+                            }
                         }
                     }
                 }
 
             } else if(toShow.contains(column.getName())){
-
-                // System.out.println("a1 " + selectResponse.getIndexes().size());
                 if(selectResponse.getIndexes().isEmpty()) {
-
-                    for(long i = 0; i < column.getValues().size(); i++) { //pas opti
-                        String val = (String) column.getValues().get(i);
-                        newColumn.addValue(i, val);
-                        selectResponse.getIndexes().add(i);
+                    for(Object o : column.getValues()) {
+                        for (Long index : (HashSet<Long>) column.getRows().get(o)) {
+                            newColumn.addRow(o, index);
+                            selectResponse.getIndexes().add(index);
+                        }
                     }
-
                     continue;
                 }
 
-                for(long i : selectResponse.getIndexes()) {
-
-                    // System.out.println("for column " + column.getName() + " we store " + column.getValues().get(i));
-                    String val = (String) column.getValues().get(i);
-                    newColumn.addValue(i, val);
+                for(Object o : column.getValues()) {
+                    for (Long index : (HashSet<Long>) column.getRows().get(o)) {
+                        newColumn.addRow(o, index);
+                    }
                 }
             }
         }

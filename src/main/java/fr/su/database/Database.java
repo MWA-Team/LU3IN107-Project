@@ -5,12 +5,6 @@ import java.util.HashMap;
 public class Database {
 
     /**
-     * Les différentes colonnes sont dispersées sur plusieurs serveurs. Pourquoi les colonnes ? Toutes les colonnes auront la même taille dans une table (normalement) ce qui accentue le bon partage des tâches entre serveurs
-     *
-     * Dans une table il y a des colonnes
-     * Dans des colonnes il y a des variables
-     *
-
     private String name;
     private UUID uuid;
      */
@@ -34,8 +28,6 @@ public class Database {
     }
 
     public void addTable(Table table) {
-
-        System.out.println("Added " + table + " to the tables");
         this.tables.put(table.getName(), table);
     }
 
