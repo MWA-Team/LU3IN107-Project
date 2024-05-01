@@ -28,24 +28,12 @@ public class LocalInsertionHandler implements InsertionHandler {
 
     @Override
     public int insert(File file) throws WrongTableFormatException {
-        /*try (Scanner scanner = new Scanner(file)) {
-            while (scanner.hasNextLine()) {
-                System.out.println(scanner.nextLine());
-            }
-        }*/
         String absolutePath = file.getAbsolutePath();
-        List<ColumnDescriptor> columns = null;
-        try {
-            columns = getTableColumns(absolutePath);
-        } catch (IOException e) {
-            return 403;
-        }
-
-        handlerFile(absolutePath, columns);
+        handlerFile(absolutePath);
         return 200;
     }
 
-    private void handlerFile(String absolutePath, List<ColumnDescriptor> columns) {
+    private void handlerFile(String absolutePath) {
         Configuration conf = new Configuration();
 
         try {
@@ -54,42 +42,46 @@ public class LocalInsertionHandler implements InsertionHandler {
             ParquetFileReader r = new ParquetFileReader(conf, new Path(absolutePath), readFooter);
 
             PageReadStore pages = null;
-            long count = 0;
+            int count = 0;
+            int page = 0;
             try {
                 while (null != (pages = r.readNextRowGroup())) {
-                    final long rows = pages.getRowCount();
-
+                    long rows = pages.getRowCount();
                     MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(schema);
                     RecordReader recordReader = columnIO.getRecordReader(pages, new GroupRecordConverter(schema));
                     for (long i = 0; i < rows; i++) {
                         Group g = (Group) recordReader.read();
                         addGroup(g, count++);
                     }
+                    page++;
                 }
             } finally {
                 r.close();
             }
         } catch (IOException e) {
-            System.out.println("Error reading parquet file.");
+            System.err.println("Error reading parquet file.");
             e.printStackTrace();
         }
     }
 
-    private static void addGroup(Group g, long index) {
+    private static void addGroup(Group g, int index) {
         int fieldCount = g.getType().getFieldCount();
         for (int field = 0; field < fieldCount; field++) {
             Type fieldType = g.getType().getType(field);
             String fieldName = fieldType.getName();
-
             Column column = Database.getInstance().getTables().get("test").getColumns().get(fieldName);
+
             if (column != null) {
                 if (!column.stored())
                     continue;
                 if (fieldType.isPrimitive()) {
                     try {
-                        column.addRow(g.getValueToString(field, 0), index);
+                        if (g.getFieldRepetitionCount(field) != 0)
+                            column.addRowGroup(g, field, index);
+                        else
+                            column.addRowValue(null, index);
                     } catch (Exception e) {
-                        column.addRow("null", index);
+                        column.addRowValue(null, index);
                     }
                 } else {
                     Group nestedGroup = g.getGroup(field, 0);
@@ -105,50 +97,3 @@ public class LocalInsertionHandler implements InsertionHandler {
     }
 
 }
-
-
-  /* public Map<String, Map<Integer, Object>> parseParquet() {
-        Map<String, Map<Integer, Object>> parquetData = new HashMap<>();
-
-        try {
-            if (parquetData != null) {
-                parquetData.putAll(parquetData);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return parquetData;
-    }
-
-    public boolean validateSchema(String absolutePath) throws IOException {
-        List<ColumnDescriptor> parquetSchema = getTableColumns(absolutePath);
-        Map<String, Table> databaseTables = Database.getInstance().getTables();
-
-        if (parquetSchema.size() != databaseTables.size()) {
-            return false;
-        }
-
-        for (ColumnDescriptor tableName : parquetSchema) {
-            if (!databaseTables.containsKey(tableName)) {
-                return false;
-            }
-
-            Table table = databaseTables.get(tableName);
-            Map<String, Column> tableColumns = table.getColumns();
-            List<ColumnDescriptor> parquetTableColumns = getTableColumns(absolutePath);
-
-            if (parquetTableColumns.size() != tableColumns.size()) {
-                return false;
-            }
-
-            for (ColumnDescriptor columnName : parquetTableColumns) {
-                if (!tableColumns.containsKey(columnName)) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-
-    */

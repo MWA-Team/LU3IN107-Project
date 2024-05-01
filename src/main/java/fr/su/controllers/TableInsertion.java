@@ -42,13 +42,3 @@ public class TableInsertion {
     }
 
 }
-
-   /* Map<String, Map<Integer, Object>> parquetData = localInsertionHandler.parseParquet();
-                parquetData.forEach((column, values) -> {
-                        System.out.println("Column: " + column);
-                        values.forEach((row, value) -> {
-                        System.out.println("Row " + row + ": " + value);
-                        });
-                        });
-
-    */

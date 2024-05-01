@@ -2,6 +2,7 @@ package fr.su.controllers;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import fr.su.database.Database;
 import fr.su.handlers.table.LocalTableHandler;
 import fr.su.handlers.table.RemoteTableHandler;
 import jakarta.inject.Inject;

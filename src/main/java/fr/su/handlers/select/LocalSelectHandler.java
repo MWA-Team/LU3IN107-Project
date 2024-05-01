@@ -38,7 +38,7 @@ public class LocalSelectHandler implements SelectHandler {
         }
 
         for(Column column : columns) {
-            Column newColumn = new Column(column.getName(), true);
+            Column newColumn = new Column(column.getName(), true, column.getType());
 
             selectResponse.getColumns().add(newColumn);
 
@@ -48,33 +48,32 @@ public class LocalSelectHandler implements SelectHandler {
                 TableSelection.Operand operand = selectBody.getWhere().get(column.getName()).getOperand();
 
                 if((columnsToEvaluate.contains(column.getName()) && operand.equals(TableSelection.Operand.EQUALS))) {
-
-                    for(Object o : column.getValues()) {
-                        if(o.equals(compare)) {
-                            for (Long index : (HashSet<Long>) column.getRows().get(o)) {
-                                newColumn.addRow(o, index);
+                    column.getRows().forEach((value, indexes) -> {
+                        if (value.equals(compare)) {
+                            ((HashSet<Integer>) indexes).forEach(index -> {
+                                newColumn.addRowValue(value, index);
                                 selectResponse.getIndexes().add(index);
-                            }
+                            });
                         }
-                    }
+                    });
                 }
 
             } else if(toShow.contains(column.getName())){
                 if(selectResponse.getIndexes().isEmpty()) {
-                    for(Object o : column.getValues()) {
-                        for (Long index : (HashSet<Long>) column.getRows().get(o)) {
-                            newColumn.addRow(o, index);
+                    column.getRows().forEach((value, indexes) -> {
+                        ((HashSet<Integer>) indexes).forEach(index -> {
+                            newColumn.addRowValue(value, index);
                             selectResponse.getIndexes().add(index);
-                        }
-                    }
+                        });
+                    });
                     continue;
                 }
 
-                for(Object o : column.getValues()) {
-                    for (Long index : (HashSet<Long>) column.getRows().get(o)) {
-                        newColumn.addRow(o, index);
-                    }
-                }
+                column.getRows().forEach((value, indexes) -> {
+                    ((HashSet<Integer>) indexes).forEach(index -> {
+                        newColumn.addRowValue(value, index);
+                    });
+                });
             }
         }
 

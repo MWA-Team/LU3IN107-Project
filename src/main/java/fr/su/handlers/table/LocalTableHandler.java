@@ -57,25 +57,25 @@ public class LocalTableHandler implements TableHandler {
             Column newColumn = null;
             switch (tableParameter.getType().toLowerCase()) {
                 case "boolean":
-                    newColumn = new Column<Boolean>(tableParameter.getName(), stored);
+                    newColumn = new Column<Boolean>(tableParameter.getName(), stored, Boolean.class);
                     break;
                 case "int32":
-                    newColumn = new Column<Integer>(tableParameter.getName(), stored);
+                    newColumn = new Column<Integer>(tableParameter.getName(), stored, Integer.class);
                     break;
                 case "int64":
-                    newColumn = new Column<Long>(tableParameter.getName(), stored);
+                    newColumn = new Column<Long>(tableParameter.getName(), stored, Long.class);
                     break;
                 case "int96":
-                    newColumn = new Column<BigInteger>(tableParameter.getName(), stored);
+                    newColumn = new Column<BigInteger>(tableParameter.getName(), stored, BigInteger.class);
                     break;
                 case "float":
-                    newColumn = new Column<Float>(tableParameter.getName(), stored);
+                    newColumn = new Column<Float>(tableParameter.getName(), stored, Float.class);
                     break;
                 case "double":
-                    newColumn = new Column<Double>(tableParameter.getName(), stored);
+                    newColumn = new Column<Double>(tableParameter.getName(), stored, Double.class);
                     break;
                 default:
-                    newColumn = new Column<String>(tableParameter.getName(), stored);
+                    newColumn = new Column<String>(tableParameter.getName(), stored, String.class);
             }
             table.getColumns().put(tableParameter.getName(), newColumn);
         }

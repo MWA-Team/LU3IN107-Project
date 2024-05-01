@@ -8,7 +8,7 @@ import java.util.*;
 
 public class SelectResponse {
 
-    private Set<Long> indexes;
+    private Set<Integer> indexes;
     private List<Column> columns;
 
     public SelectResponse() {
@@ -16,7 +16,7 @@ public class SelectResponse {
         this.columns = new ArrayList<>();
     }
 
-    public Set<Long> getIndexes() { return indexes; }
+    public Set<Integer> getIndexes() { return indexes; }
 
     public List<Column> getColumns() { return columns; }
 
@@ -66,15 +66,15 @@ public class SelectResponse {
                     }
                 }
                 if (!present) {
-                    current = new Column(column.getName(), true);
+                    current = new Column(column.getName(), true, column.getType());
                     merged.columns.add(current);
                 }
 
                 // Getting correct values corresponding to indexes
-                for (Long i : merged.indexes) {
+                for (Integer i : merged.indexes) {
                     Object o = column.getValues();
                     if (o != null)
-                        current.addRow(o, i);
+                        current.addRowValue(o, i);
                 }
             }
         }
