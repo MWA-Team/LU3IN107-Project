@@ -5,6 +5,6 @@ import org.apache.parquet.example.data.Group;
 @FunctionalInterface
 public interface LambdaInsertion {
 
-    Object call(Group g, int field, int index);
+    Object call(Group g, String field, int index);
 
 }

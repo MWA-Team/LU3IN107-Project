@@ -23,14 +23,14 @@ public class LocalSelectHandler implements SelectHandler {
         List<Column> columns = new ArrayList<>();
 
         //We load firstly columns that will reduce amount of quantity
-        for(Column columns1 : database.getTables().get(selectBody.getTable()).getColumns().values()) {
+        for(Column columns1 : database.getTables().get(selectBody.getTable()).getColumns()) {
             if(selectBody.getWhere().keySet().contains(columns1.getName())) {
                 columns.add(columns1);
             }
         }
 
         //We load columns without any 'where' clause after
-        for(Column columns1 : database.getTables().get(selectBody.getTable()).getColumns().values()) {
+        for(Column columns1 : database.getTables().get(selectBody.getTable()).getColumns()) {
             if(selectBody.getColumns().contains(columns1.getName())) {
                 if (!columns.contains(columns1))
                     columns.add(columns1);

@@ -30,19 +30,22 @@ public class Column<T> {
 
         // Type management
         if (type.equals(Boolean.class)) {
-            lambda = (Group g, int field, int index) -> g.getBoolean(field, index);
+            lambda = (Group g, String field, int index) -> g.getBoolean(field, index);
         } else if (type.equals(Integer.class)) {
-            lambda = (Group g, int field, int index) -> g.getInteger(field, index);
+            lambda = (Group g, String field, int index) -> g.getInteger(field, index);
         } else if (type.equals(Long.class)) {
-            lambda = (Group g, int field, int index) -> g.getLong(field, index);
+            lambda = (Group g, String field, int index) -> g.getLong(field, index);
         } else if (type.equals(BigInteger.class)) {
-            lambda = (Group g, int field, int index) -> g.getInt96(field, index);
+            lambda = (Group g, String field, int index) -> g.getInt96(field, index);
         } else if (type.equals(Float.class)) {
-            lambda = (Group g, int field, int index) -> g.getFloat(field, index);
+            lambda = (Group g, String field, int index) -> g.getFloat(field, index);
         } else if (type.equals(Double.class)) {
-            lambda = (Group g, int field, int index) -> g.getDouble(field, index);
+            lambda = (Group g, String field, int index) -> g.getDouble(field, index);
         } else {
-            lambda = (Group g, int field, int index) -> g.getValueToString(field, index);
+            lambda = (Group g, String field, int index) -> {
+                int i = g.getType().getFieldIndex(field);
+                return g.getValueToString(i, index);
+            };
         }
     }
 
@@ -56,7 +59,7 @@ public class Column<T> {
 
     public HashMap<T, HashSet<Integer>> getRows() { return rows; }
 
-    public void addRowGroup(Group g, int field, int index) {
+    public void addRowGroup(Group g, String field, int index) {
         T val = type.cast(lambda.call(g, field, 0));
         HashSet<Integer> row = rows.computeIfAbsent(val, k -> new HashSet<>());
         row.add(index);

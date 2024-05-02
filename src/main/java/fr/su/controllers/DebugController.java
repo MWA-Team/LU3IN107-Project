@@ -4,7 +4,6 @@ import fr.su.database.Database;
 import fr.su.database.Table;
 import jakarta.ws.rs.*;
 
-import javax.xml.crypto.Data;
 import java.util.stream.Collectors;
 
 @Path("debug")
@@ -22,7 +21,7 @@ public class DebugController {
         sb.append("\n");
 
         for(Table table : database.getTables().values()) {
-            sb.append("Table : " + table.getName() + " : " + table.getColumns().values().stream().map(all -> all.getName()).collect(Collectors.joining(", ")));
+            sb.append("Table : " + table.getName() + " : " + table.getColumnsNames().values().stream().map(all -> all.getName()).collect(Collectors.joining(", ")));
 
             System.out.println("First line : ");
 
@@ -30,17 +29,17 @@ public class DebugController {
 //            for (Column column : table.getColumns().values())
 //                System.out.println(column.getName() + " " + column.storedHere());
 
-            for(String key : table.getColumns().keySet()) {
-                for (Object o : table.getColumns().get(key).getValues()) {
+            for(String key : table.getColumnsNames().keySet()) {
+                for (Object o : table.getColumnsNames().get(key).getValues()) {
                     System.out.println("Clef : " + key + " | Value : " + o);
                     break;
                 }
             }
 
-            if (table.getColumns().size() >= 1) {
+            if (table.getColumnsNames().size() >= 1) {
                 System.out.println("First column");
-                for (String key : table.getColumns().keySet()) {
-                    for (Object o : table.getColumns().get(key).getValues()) {
+                for (String key : table.getColumnsNames().keySet()) {
+                    for (Object o : table.getColumnsNames().get(key).getValues()) {
                         System.out.println(o);
                     }
                     break;

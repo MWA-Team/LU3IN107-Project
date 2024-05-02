@@ -17,7 +17,6 @@ import org.apache.parquet.io.ColumnIOFactory;
 import org.apache.parquet.io.MessageColumnIO;
 import org.apache.parquet.io.RecordReader;
 import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.Type;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,24 +38,19 @@ public class LocalInsertionHandler implements InsertionHandler {
         try {
             ParquetMetadata readFooter = ParquetFileReader.readFooter(conf, new Path(absolutePath), ParquetMetadataConverter.NO_FILTER);
             MessageType schema = readFooter.getFileMetaData().getSchema();
-            ParquetFileReader r = new ParquetFileReader(conf, new Path(absolutePath), readFooter);
 
-            PageReadStore pages = null;
-            int count = 0;
-            int page = 0;
-            try {
+            try (ParquetFileReader r = new ParquetFileReader(conf, new Path(absolutePath), readFooter)) {
+                PageReadStore pages = null;
+                int count = 0;
                 while (null != (pages = r.readNextRowGroup())) {
                     long rows = pages.getRowCount();
                     MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(schema);
-                    RecordReader recordReader = columnIO.getRecordReader(pages, new GroupRecordConverter(schema));
+                    RecordReader<Group> recordReader = columnIO.getRecordReader(pages, new GroupRecordConverter(schema));
                     for (long i = 0; i < rows; i++) {
-                        Group g = (Group) recordReader.read();
+                        Group g = recordReader.read();
                         addGroup(g, count++);
                     }
-                    page++;
                 }
-            } finally {
-                r.close();
             }
         } catch (IOException e) {
             System.err.println("Error reading parquet file.");
@@ -65,28 +59,16 @@ public class LocalInsertionHandler implements InsertionHandler {
     }
 
     private static void addGroup(Group g, int index) {
-        int fieldCount = g.getType().getFieldCount();
-        for (int field = 0; field < fieldCount; field++) {
-            Type fieldType = g.getType().getType(field);
-            String fieldName = fieldType.getName();
-            Column column = Database.getInstance().getTables().get("test").getColumns().get(fieldName);
-
-            if (column != null) {
-                if (!column.stored())
-                    continue;
-                if (fieldType.isPrimitive()) {
-                    try {
-                        if (g.getFieldRepetitionCount(field) != 0)
-                            column.addRowGroup(g, field, index);
-                        else
-                            column.addRowValue(null, index);
-                    } catch (Exception e) {
-                        column.addRowValue(null, index);
-                    }
-                } else {
-                    Group nestedGroup = g.getGroup(field, 0);
-                    addGroup(nestedGroup, index);
-                }
+        for (Column c : Database.getInstance().getTables().get("test").getColumns()) {
+            if (!c.stored())
+                continue;
+            try {
+                if (g.getFieldRepetitionCount(c.getName()) != 0)
+                    c.addRowGroup(g, c.getName(), index);
+                else
+                    c.addRowValue(null, index);
+            } catch (Exception e) {
+                c.addRowValue(null, index);
             }
         }
     }

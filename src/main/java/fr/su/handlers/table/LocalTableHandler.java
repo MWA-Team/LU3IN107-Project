@@ -77,7 +77,7 @@ public class LocalTableHandler implements TableHandler {
                 default:
                     newColumn = new Column<String>(tableParameter.getName(), stored, String.class);
             }
-            table.getColumns().put(tableParameter.getName(), newColumn);
+            table.addColumn(newColumn);
         }
 
         database.addTable(table);

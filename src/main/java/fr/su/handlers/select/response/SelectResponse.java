@@ -27,7 +27,7 @@ public class SelectResponse {
 
         // Check if current servers had to do a select with condition
         if (indexes.isEmpty()) {
-            for (Column column : Database.getInstance().getTables().get("test").getColumns().values()) {
+            for (Column column : Database.getInstance().getTables().get("test").getColumns()) {
                 if (column.stored() && selectBody.getColumns().contains(column))
                     return merged;
             }
