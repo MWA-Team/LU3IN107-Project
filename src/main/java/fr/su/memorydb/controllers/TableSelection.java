@@ -38,12 +38,17 @@ public class TableSelection{
         SelectResponse localResponse = localSelectHandler.select(selectBody);
         SelectResponse remoteResponse = remoteSelectHandler.select(selectBody);
 
-        List<SelectResponse> list = new ArrayList<>();
-        if (remoteResponse != null)
-            list.add(remoteResponse);
-        SelectResponse finaleResponse = localResponse != null ? localResponse.merge(list) : remoteResponse;
+        int statusCode = 200;
 
-        return Response.status(200).entity(finaleResponse).type(MediaType.APPLICATION_JSON).build();
+        if (localResponse == null) {
+            statusCode = remoteResponse != null ? 200 : 400;
+        }
+
+        List<SelectResponse> list = new ArrayList<>();
+        list.add(remoteResponse);
+        SelectResponse finaleResponse = localResponse != null ? localResponse.merge(list) : remoteResponse != null ? remoteResponse : new SelectResponse();
+
+        return Response.status(statusCode).entity(finaleResponse).type(MediaType.APPLICATION_JSON).build();
     }
 
     public static class SelectBody {

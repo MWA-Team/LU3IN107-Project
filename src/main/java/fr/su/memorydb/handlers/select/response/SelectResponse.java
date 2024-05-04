@@ -23,6 +23,8 @@ public class SelectResponse {
             boolean valid = true;
             HashMap<String, Object> newRow = new HashMap<>();
             for (SelectResponse response : responses) {
+                if (response == null)
+                    continue;
                 HashMap<String, Object> tmp = response.rows.get((Integer) row.getKey());
                 if (tmp == null) {
                     valid = false;
@@ -31,7 +33,7 @@ public class SelectResponse {
                 newRow.putAll(tmp);
             }
             if (valid) {
-                retval.rows.put(row.getKey(), newRow);
+                newRow.putAll(row.getValue());
                 retval.add(row.getKey(), newRow);
             }
         }
