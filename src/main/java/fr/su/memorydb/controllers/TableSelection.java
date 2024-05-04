@@ -41,7 +41,7 @@ public class TableSelection{
         List<SelectResponse> list = new ArrayList<>();
         if (remoteResponse != null)
             list.add(remoteResponse);
-        SelectResponse finaleResponse = localResponse.merge(list);
+        SelectResponse finaleResponse = localResponse != null ? localResponse.merge(list) : remoteResponse;
 
         return Response.status(200).entity(finaleResponse).type(MediaType.APPLICATION_JSON).build();
     }
