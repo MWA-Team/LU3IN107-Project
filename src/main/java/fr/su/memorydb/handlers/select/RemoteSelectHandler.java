@@ -24,19 +24,25 @@ public class RemoteSelectHandler implements SelectHandler {
         ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
         String json = ow.writeValueAsString(selectBody);
         Response response = forwardingManager.forwardSelect(json);
-        if (response == null || response.getStatus() != 200)
+
+        if (response == null)
             return null;
+
         List<Response> responses = (List<Response>) response.getEntity();
-        if (responses.size() == 0)
+
+        if (responses.isEmpty())
             return null;
 
         List<SelectResponse> retval = new LinkedList<>();
 
         ObjectMapper om = new ObjectMapper();
         for (Response r : responses) {
+            if (r.getStatus() != 200)
+                return null;
             retval.add(om.readValue(r.readEntity(String.class), SelectResponse.class));
         }
         SelectResponse last = retval.remove(retval.size() - 1);
+
         return last.merge(retval);
     }
 }
