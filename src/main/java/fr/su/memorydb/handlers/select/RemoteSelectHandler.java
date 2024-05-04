@@ -24,7 +24,7 @@ public class RemoteSelectHandler implements SelectHandler {
         ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
         String json = ow.writeValueAsString(selectBody);
         Response response = forwardingManager.forwardSelect(json);
-        if (response == null || (response.getStatus() != 200 && response.getStatus() != 404))
+        if (response == null || response.getStatus() != 200)
             return null;
         List<Response> responses = (List<Response>) response.getEntity();
         if (responses.size() == 0)
