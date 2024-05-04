@@ -92,7 +92,7 @@ public class ForwardingManager {
             else {
                 System.out.println("Forwarding happened once.");
                 URI newUri = URI.create("http://" + ip + ":8080" + context.request().uri());
-                ForwardingProxy proxy = RestClientBuilder.newBuilder().baseUri(newUri).property("microprofile.rest.client.disable.default.mapper",true).build(ForwardingProxy.class);
+                ForwardingProxy proxy = RestClientBuilder.newBuilder().baseUri(newUri).build(ForwardingProxy.class);
                 Response r = lambda.call(proxy, localAddr, Integer.toString(id), body);
                 responses.add(r);
                 id++;
