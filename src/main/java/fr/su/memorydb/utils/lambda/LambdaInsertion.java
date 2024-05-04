@@ -1,4 +1,4 @@
-package fr.su.memorydb.handlers.insertion;
+package fr.su.memorydb.utils.lambda;
 
 import org.apache.parquet.example.data.Group;
 

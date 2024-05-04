@@ -1,7 +1,7 @@
 package fr.su.memorydb.handlers;
 
 import fr.su.memorydb.proxy.ForwardingProxy;
-import fr.su.memorydb.proxy.ProxyLambda;
+import fr.su.memorydb.utils.lambda.ProxyLambda;
 
 import io.vertx.ext.web.RoutingContext;
 import jakarta.inject.Singleton;

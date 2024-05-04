@@ -1,7 +1,9 @@
 package fr.su.memorydb.database;
 
-import fr.su.memorydb.handlers.insertion.LambdaInsertion;
+import fr.su.memorydb.utils.lambda.LambdaInsertion;
+import fr.su.memorydb.utils.lambda.LambdaTypeConverter;
 import org.apache.parquet.example.data.Group;
+import org.apache.parquet.example.data.GroupValueSource;
 
 import java.math.BigInteger;
 import java.util.*;
@@ -12,6 +14,7 @@ public class Column<T> {
     private final boolean stored;
     private Class<T> type;
     private LambdaInsertion lambda;
+    private LambdaTypeConverter<T> converter;
 
     private final HashMap<T, HashSet<Integer>> rows; // Linked list are good because we don't access specific indexes and insert data a lot
 
@@ -19,6 +22,7 @@ public class Column<T> {
         name = "Injected";
         stored = true;
         rows = new HashMap<>();
+        converter = (String o) -> null;
     }
 
     public Column(String name, boolean stored, Class<T> type) {
@@ -29,22 +33,29 @@ public class Column<T> {
 
         // Type management
         if (type.equals(Boolean.class)) {
-            lambda = (Group g, String field, int index) -> g.getBoolean(field, index);
+            lambda = GroupValueSource::getBoolean;
+            converter = (String o) -> type.cast(Boolean.parseBoolean(o));
         } else if (type.equals(Integer.class)) {
-            lambda = (Group g, String field, int index) -> g.getInteger(field, index);
+            lambda = GroupValueSource::getInteger;
+            converter = (String o) -> type.cast(Integer.parseInt(o));
         } else if (type.equals(Long.class)) {
-            lambda = (Group g, String field, int index) -> g.getLong(field, index);
+            lambda = GroupValueSource::getLong;
+            converter = (String o) -> type.cast(Long.parseLong(o));
         } else if (type.equals(BigInteger.class)) {
-            lambda = (Group g, String field, int index) -> g.getInt96(field, index);
+            lambda = GroupValueSource::getInt96;
+            converter = (String o) -> type.cast(BigInteger.valueOf(Long.parseLong(o)));
         } else if (type.equals(Float.class)) {
-            lambda = (Group g, String field, int index) -> g.getFloat(field, index);
+            lambda = GroupValueSource::getFloat;
+            converter = (String o) -> type.cast(Float.parseFloat(o));
         } else if (type.equals(Double.class)) {
-            lambda = (Group g, String field, int index) -> g.getDouble(field, index);
+            lambda = GroupValueSource::getDouble;
+            converter = (String o) -> type.cast(Double.parseDouble(o));
         } else {
             lambda = (Group g, String field, int index) -> {
                 int i = g.getType().getFieldIndex(field);
                 return g.getValueToString(i, index);
             };
+            converter = type::cast;
         }
     }
 
@@ -75,6 +86,10 @@ public class Column<T> {
 
     public Class<T> getType() {
         return type;
+    }
+
+    public LambdaTypeConverter<T> getConverter() {
+        return converter;
     }
 
 }

@@ -4,6 +4,7 @@ import fr.su.memorydb.controllers.TableSelection;
 import fr.su.memorydb.database.Column;
 import fr.su.memorydb.database.Database;
 import fr.su.memorydb.handlers.select.response.SelectResponse;
+import fr.su.memorydb.utils.lambda.LambdaTypeConverter;
 import jakarta.inject.Singleton;
 
 import java.util.ArrayList;
@@ -39,17 +40,17 @@ public class LocalSelectHandler implements SelectHandler {
 
         for(Column column : columns) {
             Column newColumn = new Column(column.getName(), true, column.getType());
-
+            LambdaTypeConverter converter = column.getConverter();
             selectResponse.getColumns().add(newColumn);
 
             if(columnsToEvaluate.contains(column.getName())) {
 
-                String compare = selectBody.getWhere().get(column.getName()).getValue();
+                Object compare = selectBody.getWhere().get(column.getName()).getValue();
                 TableSelection.Operand operand = selectBody.getWhere().get(column.getName()).getOperand();
 
                 if((columnsToEvaluate.contains(column.getName()) && operand.equals(TableSelection.Operand.EQUALS))) {
                     column.getRows().forEach((value, indexes) -> {
-                        if (value.equals(compare)) {
+                        if ((value == null && compare == null) || (value != null && value.equals(converter.call((String) compare)))) {
                             ((HashSet<Integer>) indexes).forEach(index -> {
                                 newColumn.addRowValue(value, index);
                                 selectResponse.getIndexes().add(index);
