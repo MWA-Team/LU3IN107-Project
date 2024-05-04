@@ -39,8 +39,9 @@ public class TableSelection{
         SelectResponse remoteResponse = remoteSelectHandler.select(selectBody);
 
         List<SelectResponse> list = new ArrayList<>();
-        list.add(remoteResponse);
-        SelectResponse finaleResponse = localResponse.merge(list, selectBody);
+        if (remoteResponse != null)
+            list.add(remoteResponse);
+        SelectResponse finaleResponse = localResponse.merge(list);
 
         return Response.status(200).entity(finaleResponse).type(MediaType.APPLICATION_JSON).build();
     }
@@ -84,5 +85,5 @@ public class TableSelection{
         }
     }
 
-    public enum Operand { EQUALS, BIGGER, LOWER, NOT_EQUALS}
+    public enum Operand { EQUALS, BIGGER, LOWER, NOT_EQUALS }
 }

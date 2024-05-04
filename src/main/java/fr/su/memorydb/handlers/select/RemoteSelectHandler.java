@@ -37,6 +37,6 @@ public class RemoteSelectHandler implements SelectHandler {
             retval.add(om.readValue(r.readEntity(String.class), SelectResponse.class));
         }
         SelectResponse last = retval.remove(retval.size() - 1);
-        return last.merge(retval, selectBody);
+        return last.merge(retval);
     }
 }

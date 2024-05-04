@@ -7,77 +7,71 @@ import fr.su.memorydb.handlers.select.response.SelectResponse;
 import fr.su.memorydb.utils.lambda.LambdaTypeConverter;
 import jakarta.inject.Singleton;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 @Singleton
 public class LocalSelectHandler implements SelectHandler {
 
     @Override
     public SelectResponse select(TableSelection.SelectBody selectBody) {
-        List<String> toShow = selectBody.getColumns();
-        List<String> columnsToEvaluate = selectBody.getWhere().keySet().stream().toList();
+        HashSet<Column> toShow = new HashSet<>();
+        HashSet<Column> toEvaluate = new HashSet<>();
+        LinkedList<HashSet<Integer>> evaluatedIndexes = new LinkedList<>();
         SelectResponse selectResponse = new SelectResponse();
 
-        Database database = Database.getInstance();
-        List<Column> columns = new ArrayList<>();
-
-        //We load firstly columns that will reduce amount of quantity
-        for(Column columns1 : database.getTables().get(selectBody.getTable()).getColumns()) {
-            if(selectBody.getWhere().keySet().contains(columns1.getName())) {
-                columns.add(columns1);
+        // Parsing which column to show and which column to evaluate (where clause)
+        for(Column column : Database.getInstance().getTables().get(selectBody.getTable()).getColumns()) {
+            if (column.stored()) {
+                if(selectBody.getWhere().containsKey(column.getName()))
+                    toEvaluate.add(column);
+                if (selectBody.getColumns().contains(column.getName()))
+                    toShow.add(column);
             }
         }
 
-        //We load columns without any 'where' clause after
-        for(Column columns1 : database.getTables().get(selectBody.getTable()).getColumns()) {
-            if(selectBody.getColumns().contains(columns1.getName())) {
-                if (!columns.contains(columns1))
-                    columns.add(columns1);
-            }
-        }
+        // If there is nothing to do on this server, return null
+        if (toShow.isEmpty() && toEvaluate.isEmpty())
+            return null;
 
-        for(Column column : columns) {
-            Column newColumn = new Column(column.getName(), true, column.getType());
+        // Getting all indexes that match their condition in the related columns
+        for (Column column : toEvaluate) {
             LambdaTypeConverter converter = column.getConverter();
-            selectResponse.getColumns().add(newColumn);
+            Object compare = selectBody.getWhere().get(column.getName()).getValue();
+            TableSelection.Operand operand = selectBody.getWhere().get(column.getName()).getOperand();
 
-            if(columnsToEvaluate.contains(column.getName())) {
-
-                Object compare = selectBody.getWhere().get(column.getName()).getValue();
-                TableSelection.Operand operand = selectBody.getWhere().get(column.getName()).getOperand();
-
-                if((columnsToEvaluate.contains(column.getName()) && operand.equals(TableSelection.Operand.EQUALS))) {
-                    column.getRows().forEach((value, indexes) -> {
-                        if ((value == null && compare == null) || (value != null && value.equals(converter.call((String) compare)))) {
-                            ((HashSet<Integer>) indexes).forEach(index -> {
-                                newColumn.addRowValue(value, index);
-                                selectResponse.getIndexes().add(index);
-                            });
-                        }
-                    });
-                }
-
-            } else if(toShow.contains(column.getName())){
-                if(selectResponse.getIndexes().isEmpty()) {
-                    column.getRows().forEach((value, indexes) -> {
-                        ((HashSet<Integer>) indexes).forEach(index -> {
-                            newColumn.addRowValue(value, index);
-                            selectResponse.getIndexes().add(index);
-                        });
-                    });
-                    continue;
-                }
-
-                column.getRows().forEach((value, indexes) -> {
-                    ((HashSet<Integer>) indexes).forEach(index -> {
-                        newColumn.addRowValue(value, index);
-                    });
+            if (operand.equals(TableSelection.Operand.EQUALS)) {
+                column.getRows().forEach((value, indexesSet) -> {
+                    if ((value == null && compare == null) || (value != null && value.equals(converter.call((String) compare)))) {
+                        evaluatedIndexes.add((HashSet<Integer>) indexesSet);
+                    }
                 });
             }
         }
 
+        // If there was a filter on this server use evaluatedIndex, else return all indexes on all selected columns
+        boolean filterOccurred = evaluatedIndexes.isEmpty() && !toEvaluate.isEmpty();
+        if (evaluatedIndexes.isEmpty() && filterOccurred)
+            return new SelectResponse();
+
+        HashSet<Integer> indexes = null;
+        try {
+            indexes = evaluatedIndexes.pop();
+        } catch (NoSuchElementException e) {
+            for (Column column : toShow) {
+                indexes = column.getAllIndexes();
+                break;
+            }
+        }
+
+        for (Integer index : indexes) {
+            HashMap<String, Object> row = new HashMap<>();
+            for (Column column : toShow) {
+                LambdaTypeConverter converter = column.getConverter();
+                row.put(column.getName(), converter.call(String.valueOf(column.getValue(index))));
+            }
+            selectResponse.add(index, row);
+        }
         return selectResponse;
     }
+
 }
