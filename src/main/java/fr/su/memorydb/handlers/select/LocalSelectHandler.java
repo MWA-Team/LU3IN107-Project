@@ -62,14 +62,14 @@ public class LocalSelectHandler implements SelectHandler {
 
         // Building response
         for (Integer index : indexes) {
-            boolean pass = evaluatedIndexes.isEmpty();
+            boolean pass = false;
             for (HashSet<Integer> indexSet : evaluatedIndexes) {
                 if (!indexSet.contains(index)) {
                     pass = true;
                     break;
                 }
             }
-            if (!pass)
+            if (!evaluatedIndexes.isEmpty() && pass)
                 continue;
             HashMap<String, Object> row = new HashMap<>();
             for (Column column : toShow) {
