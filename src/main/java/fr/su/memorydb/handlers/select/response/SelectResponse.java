@@ -64,7 +64,7 @@ public class SelectResponse {
     public SelectResponse aggregate(TableSelection.SelectBody selectBody) {
 
         try {
-            if(InetAddress.getLocalHost().getHostAddress().equals("192.168.1.20")) {
+            if(!InetAddress.getLocalHost().getHostAddress().equals("192.168.1.20")) {
 
                 return this;
             }
@@ -90,6 +90,8 @@ public class SelectResponse {
 
 
             }
+
+            rows = groupBy;
 
         }
 
