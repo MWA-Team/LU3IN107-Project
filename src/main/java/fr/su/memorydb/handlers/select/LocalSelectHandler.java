@@ -47,14 +47,13 @@ public class LocalSelectHandler implements SelectHandler {
         }
 
         // If there was a filter on this server use evaluatedIndex, else return all indexes on all selected columns
-        boolean filterOccurred = !toEvaluate.isEmpty();
-        if (evaluatedIndexes.isEmpty() && filterOccurred)
+        if (evaluatedIndexes.isEmpty() && !toEvaluate.isEmpty())
             return new SelectResponse();
 
         HashSet<Integer> indexes = null;
-        try {
+        if (!evaluatedIndexes.isEmpty())
             indexes = evaluatedIndexes.pop();
-        } catch (NoSuchElementException e) {
+        else {
             for (Column column : toShow) {
                 indexes = column.getAllIndexes();
                 break;
@@ -63,7 +62,7 @@ public class LocalSelectHandler implements SelectHandler {
 
         // Building response
         for (Integer index : indexes) {
-            boolean pass = false;
+            boolean pass = evaluatedIndexes.isEmpty();
             for (HashSet<Integer> indexSet : evaluatedIndexes) {
                 if (!indexSet.contains(index)) {
                     pass = true;
