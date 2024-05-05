@@ -40,7 +40,7 @@ public class Column<T> {
             converter = (String o) -> o != null ? type.cast(Integer.parseInt(o)) : null;
         } else if (type.equals(Long.class)) {
             lambda = GroupValueSource::getLong;
-            converter = (String o) -> o != null ? type.cast(Long.parseLong(o)) : null;
+            converter = (String o) -> !Objects.equals(o, "null") ? type.cast(Long.parseLong(o)) : null;
         } else if (type.equals(BigInteger.class)) {
             lambda = GroupValueSource::getInt96;
             converter = (String o) -> o != null ? type.cast(BigInteger.valueOf(Long.parseLong(o))) : null;
