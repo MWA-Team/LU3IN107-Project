@@ -78,6 +78,30 @@ public class LocalSelectHandler implements SelectHandler {
             }
             selectResponse.add(index, row);
         }
+
+        //Managing group by : decrementing in negative numbers
+        if(selectBody.hasGroupBy()) {
+
+            int index = -1;
+            String column = selectBody.getGroupBy();
+
+            Column clm = Database.getInstance().getTables().get(selectBody.getTable()).getColumn(column);
+            for(Object obj : clm.getRows().keySet()) { //Represent all distinct data in column
+
+                int groupByIndex = ((HashSet<Integer>)clm.getRows().get(obj)).iterator().next();
+                if(!selectResponse.containIndex(groupByIndex)) continue; //in case the where clause removed some of the group by values
+                HashMap base = new HashMap();
+
+                for(Column column1 : toShow) {
+                    base.put(column1.getName(), groupByIndex); //we can't access specific index here, so we will access to it later in SelectResponse
+                }
+
+                selectResponse.add(index, base);
+                index-=1;
+
+            }
+        }
+
         return selectResponse;
     }
 

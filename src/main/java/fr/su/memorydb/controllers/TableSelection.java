@@ -47,6 +47,8 @@ public class TableSelection{
         list.add(remoteResponse);
         SelectResponse finaleResponse = localResponse != null ? localResponse.merge(list) : remoteResponse != null ? remoteResponse : new SelectResponse();
 
+        finaleResponse.aggregate(selectBody);
+
         return Response.status(statusCode).entity(finaleResponse).type(MediaType.APPLICATION_JSON).build();
     }
 
@@ -60,6 +62,11 @@ public class TableSelection{
         @JsonProperty
         HashMap<String, SelectOperand> where;
 
+        @JsonProperty
+        private Aggregate aggregate;
+
+        private String groupBy;
+
         public String getTable() {
             return table;
         }
@@ -70,6 +77,29 @@ public class TableSelection{
 
         public HashMap<String, SelectOperand> getWhere() {
             return where;
+        }
+
+        public Aggregate getAggregate() {
+            return aggregate;
+        }
+
+        public boolean hasSumAggregate() {
+
+            return aggregate != null && aggregate.sum != null;
+        }
+
+        public boolean hasMeanAggregate() {
+
+            return aggregate != null && aggregate.mean != null;
+        }
+
+        public String getGroupBy() {
+            return groupBy;
+        }
+
+        public boolean hasGroupBy() {
+
+            return groupBy != null && !groupBy.isEmpty();
         }
     }
 
@@ -87,6 +117,14 @@ public class TableSelection{
         public String getValue() {
             return value;
         }
+    }
+
+    public static class Aggregate {
+
+        private List<String> sum;
+        private List<String> mean;
+        private List<String> count;
+
     }
 
     public enum Operand { EQUALS, BIGGER, LOWER, NOT_EQUALS }
