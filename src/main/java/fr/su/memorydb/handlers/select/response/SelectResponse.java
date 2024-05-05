@@ -7,6 +7,7 @@ import java.util.*;
 
 public class SelectResponse {
 
+    @JsonProperty
     private HashMap<Integer, HashMap<String, Object>> rows = new HashMap<>();
 
     public SelectResponse merge(List<SelectResponse> responses) {

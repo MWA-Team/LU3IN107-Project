@@ -34,28 +34,28 @@ public class Column<T> {
         // Type management
         if (type.equals(Boolean.class)) {
             lambda = GroupValueSource::getBoolean;
-            converter = (String o) -> type.cast(Boolean.parseBoolean(o));
+            converter = (String o) -> o != null ? type.cast(Boolean.parseBoolean(o)) : null;
         } else if (type.equals(Integer.class)) {
             lambda = GroupValueSource::getInteger;
-            converter = (String o) -> type.cast(Integer.parseInt(o));
+            converter = (String o) -> o != null ? type.cast(Integer.parseInt(o)) : null;
         } else if (type.equals(Long.class)) {
             lambda = GroupValueSource::getLong;
-            converter = (String o) -> type.cast(Long.parseLong(o));
+            converter = (String o) -> o != null ? type.cast(Long.parseLong(o)) : null;
         } else if (type.equals(BigInteger.class)) {
             lambda = GroupValueSource::getInt96;
-            converter = (String o) -> type.cast(BigInteger.valueOf(Long.parseLong(o)));
+            converter = (String o) -> o != null ? type.cast(BigInteger.valueOf(Long.parseLong(o))) : null;
         } else if (type.equals(Float.class)) {
             lambda = GroupValueSource::getFloat;
-            converter = (String o) -> type.cast(Float.parseFloat(o));
+            converter = (String o) -> o != null ? type.cast(Float.parseFloat(o)) : null;
         } else if (type.equals(Double.class)) {
             lambda = GroupValueSource::getDouble;
-            converter = (String o) -> type.cast(Double.parseDouble(o));
+            converter = (String o) -> o != null ? type.cast(Double.parseDouble(o)) : null;
         } else {
             lambda = (Group g, String field, int index) -> {
                 int i = g.getType().getFieldIndex(field);
                 return g.getValueToString(i, index);
             };
-            converter = type::cast;
+            converter = (String o) -> o != null ? type.cast(o) : null;
         }
     }
 
