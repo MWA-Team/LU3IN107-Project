@@ -3,7 +3,6 @@ package fr.su.memorydb.handlers.select;
 import fr.su.memorydb.controllers.TableSelection;
 import fr.su.memorydb.database.Column;
 import fr.su.memorydb.database.Database;
-import fr.su.memorydb.handlers.select.response.EmptySelectResponse;
 import fr.su.memorydb.handlers.select.response.SelectResponse;
 import fr.su.memorydb.utils.lambda.LambdaTypeConverter;
 import jakarta.inject.Singleton;
@@ -32,7 +31,7 @@ public class LocalSelectHandler implements SelectHandler {
 
         // If there is nothing to do on this server, return null
         if (toShow.isEmpty() && toEvaluate.isEmpty())
-            return new EmptySelectResponse();
+            return null;
 
         // Getting all indexes that match their condition in the related columns
         for (Column column : toEvaluate) {

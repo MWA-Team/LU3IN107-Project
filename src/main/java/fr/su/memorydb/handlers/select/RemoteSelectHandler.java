@@ -39,7 +39,8 @@ public class RemoteSelectHandler implements SelectHandler {
         for (Response r : responses) {
             if (r.getStatus() != 200)
                 continue;
-            retval.add(om.readValue(r.readEntity(String.class), SelectResponse.class));
+            String t = r.readEntity(String.class);
+            retval.add(om.readValue(t, SelectResponse.class));
         }
 
         if (retval.isEmpty())

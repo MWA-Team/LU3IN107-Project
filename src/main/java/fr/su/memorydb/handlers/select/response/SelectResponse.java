@@ -12,6 +12,11 @@ public class SelectResponse {
     @JsonProperty
     private HashMap<Integer, HashMap<String, Object>> rows = new HashMap<>();
 
+    public SelectResponse() {
+
+        this.rows = new HashMap<>();
+    }
+
     public SelectResponse merge(List<SelectResponse> responses) {
         if(responses == null || responses.isEmpty()) { return this; }
 
@@ -70,24 +75,15 @@ public class SelectResponse {
             //plusieurs lignes
         }
 
-        return null;
+        return this;
     }
 
     public void add(int index, HashMap<String, Object> row) {
         rows.put(index, row);
     }
 
-    public boolean isEmpty() {
-        return rows.isEmpty();
-    }
-
     public void remove(HashMap<String, Object> key) {
         rows.remove(key);
-    }
-
-    // Getter for rows to remove indexes
-    public Collection<HashMap<String, Object>> getRows() {
-        return rows.values();
     }
 
     public boolean containIndex(int index) {
