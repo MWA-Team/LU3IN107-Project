@@ -28,6 +28,7 @@ public class SelectResponse {
 
         //If group by is in the responses, we need to add it before updating
         for(SelectResponse selectResponse : responses) {
+            if(selectResponse == null) continue;
             for(int index : selectResponse.rows.keySet()) {
                 if(index < 0) {
                     HashMap<String, Object> columns = selectResponse.rows.get(index);
