@@ -3,6 +3,7 @@ package fr.su.memorydb.handlers.select;
 import fr.su.memorydb.controllers.TableSelection;
 import fr.su.memorydb.database.Column;
 import fr.su.memorydb.database.Database;
+import fr.su.memorydb.handlers.select.response.EmptySelectResponse;
 import fr.su.memorydb.handlers.select.response.SelectResponse;
 import fr.su.memorydb.utils.lambda.LambdaTypeConverter;
 import jakarta.inject.Singleton;
@@ -31,7 +32,7 @@ public class LocalSelectHandler implements SelectHandler {
 
         // If there is nothing to do on this server, return null
         if (toShow.isEmpty() && toEvaluate.isEmpty())
-            return null;
+            return new EmptySelectResponse();
 
         // Getting all indexes that match their condition in the related columns
         for (Column column : toEvaluate) {
@@ -86,19 +87,22 @@ public class LocalSelectHandler implements SelectHandler {
             String column = selectBody.getGroupBy();
 
             Column clm = Database.getInstance().getTables().get(selectBody.getTable()).getColumn(column);
-            for(Object obj : clm.getRows().keySet()) { //Represent all distinct data in column
+            if(clm.stored()) {
 
-                int groupByIndex = ((HashSet<Integer>)clm.getRows().get(obj)).iterator().next();
-                if(!selectResponse.containIndex(groupByIndex)) continue; //in case the where clause removed some of the group by values
-                HashMap base = new HashMap();
+                for(Object obj : clm.getRows().keySet()) { //Represent all distinct data in column
 
-                for(Column column1 : toShow) {
-                    base.put(column1.getName(), groupByIndex); //we can't access specific index here, so we will access to it later in SelectResponse
+                    int groupByIndex = ((HashSet<Integer>)clm.getRows().get(obj)).iterator().next();
+                    if(!selectResponse.containIndex(groupByIndex)) continue; //in case the where clause removed some of the group by values
+                    HashMap base = new HashMap();
+
+                    for(Column column1 : toShow) {
+                        base.put(column1.getName(), groupByIndex); //we can't access specific index here, so we will access to it later in SelectResponse
+                    }
+
+                    selectResponse.add(index, base);
+                    index-=1;
+
                 }
-
-                selectResponse.add(index, base);
-                index-=1;
-
             }
         }
 

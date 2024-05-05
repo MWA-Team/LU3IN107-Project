@@ -5,7 +5,6 @@ import fr.su.memorydb.controllers.TableSelection;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 
 public class SelectResponse {
@@ -87,8 +86,8 @@ public class SelectResponse {
     }
 
     // Getter for rows to remove indexes
-    public HashMap<Integer, HashMap<String, Object>> getRows() {
-        return rows;
+    public Collection<HashMap<String, Object>> getRows() {
+        return rows.values();
     }
 
     public boolean containIndex(int index) {
