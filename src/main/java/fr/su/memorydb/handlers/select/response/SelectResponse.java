@@ -1,14 +1,12 @@
 package fr.su.memorydb.handlers.select.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonValue;
-import fr.su.memorydb.controllers.TableSelection;
 
 import java.util.*;
 
+
 public class SelectResponse {
 
-    @JsonProperty
     private HashMap<Integer, HashMap<String, Object>> rows = new HashMap<>();
 
     public SelectResponse merge(List<SelectResponse> responses) {

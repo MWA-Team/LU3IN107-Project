@@ -99,7 +99,7 @@ public class ForwardingManager {
             }
         }
         
-        List<Response> entities = new ArrayList<>(responses);
+        List<Response> entities = new LinkedList<>(responses);
         Response response = Response.status(200).entity(entities).build();
         return response;
     }

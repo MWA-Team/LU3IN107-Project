@@ -42,7 +42,7 @@ public class TableSelection{
 
         if (localResponse == null && remoteResponse == null)
             statusCode = 204;
-x   
+
         List<SelectResponse> list = new ArrayList<>();
         list.add(remoteResponse);
         SelectResponse finaleResponse = localResponse != null ? localResponse.merge(list) : remoteResponse != null ? remoteResponse : new SelectResponse();

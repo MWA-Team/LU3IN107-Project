@@ -37,12 +37,15 @@ public class RemoteSelectHandler implements SelectHandler {
 
         ObjectMapper om = new ObjectMapper();
         for (Response r : responses) {
-            if (r.getStatus() != 200 && r.getStatus() != 204)
+            if (r.getStatus() != 200)
                 continue;
             retval.add(om.readValue(r.readEntity(String.class), SelectResponse.class));
         }
-        SelectResponse last = retval.remove(retval.size() - 1);
 
+        if (retval.isEmpty())
+            return null;
+
+        SelectResponse last = retval.remove(retval.size() - 1);
         return last.merge(retval);
     }
 }
