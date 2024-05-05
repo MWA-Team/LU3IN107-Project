@@ -3,6 +3,8 @@ package fr.su.memorydb.handlers.select.response;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import fr.su.memorydb.controllers.TableSelection;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -13,7 +15,6 @@ public class SelectResponse {
     private HashMap<Integer, HashMap<String, Object>> rows = new HashMap<>();
 
     public SelectResponse() {
-
         this.rows = new HashMap<>();
     }
 
@@ -25,14 +26,27 @@ public class SelectResponse {
         if (rows.isEmpty())
             return retval;
 
+        //If group by is in the responses, we need to add it before updating
+        for(SelectResponse selectResponse : responses) {
+            for(int index : selectResponse.rows.keySet()) {
+                if(index < 0) {
+                    HashMap<String, Object> columns = selectResponse.rows.get(index);
+                    int groupByIndex = (int)columns.entrySet().stream().findFirst().get().getValue();
+
+                    retval.add(index, columns);
+                }
+            }
+        }
+
         for (Map.Entry<Integer, HashMap<String, Object>> row : rows.entrySet()) {
             boolean valid = true;
+            int index = (Integer) row.getKey();
             HashMap<String, Object> newRow = new HashMap<>();
             for (SelectResponse response : responses) {
                 if (response == null)
                     continue;
-                HashMap<String, Object> tmp = response.rows.get((Integer) row.getKey());
-                if (tmp == null) {
+                HashMap<String, Object> tmp = response.rows.get(index);
+                if (row.getKey() > 0 && tmp == null) {
                     valid = false;
                     break;
                 }
@@ -49,6 +63,15 @@ public class SelectResponse {
 
     public SelectResponse aggregate(TableSelection.SelectBody selectBody) {
 
+        try {
+            if(InetAddress.getLocalHost().getHostAddress().equals("192.168.1.20")) {
+
+                return this;
+            }
+        } catch (UnknownHostException e) {
+            throw new RuntimeException(e);
+        }
+
         if(selectBody.hasGroupBy()) {
 
             HashMap<Integer, HashMap<String, Object>> groupBy = (HashMap<Integer, HashMap<String, Object>>) rows.entrySet().stream()
@@ -59,20 +82,15 @@ public class SelectResponse {
 
                 for(String clm : groupBy.get(i).keySet()) {
 
-                    int index = (int) groupBy.get(i).get(clm);
-                    System.out.println("access " + i + " with index " + index);
-                    rows.get(i).put(clm, rows.get(index).get(clm));
+                    if(groupBy.get(i).get(clm) instanceof Integer index) {
+
+                        rows.get(i).put(clm, rows.get(index).get(clm));
+                    }
                 }
 
 
             }
 
-
-            //rows = groupBy;
-            rows = (HashMap<Integer, HashMap<String, Object>>) rows.entrySet().stream()
-                    .filter(entry -> entry.getKey() < 0)
-                    .collect(Collectors.toMap(entry -> entry.getKey(), entry -> entry.getValue()));
-            //plusieurs lignes
         }
 
         return this;
