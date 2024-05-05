@@ -40,16 +40,14 @@ public class LocalSelectHandler implements SelectHandler {
             TableSelection.Operand operand = selectBody.getWhere().get(column.getName()).getOperand();
 
             if (operand.equals(TableSelection.Operand.EQUALS)) {
-                column.getRows().forEach((value, indexesSet) -> {
-                    if ((value == null && compare == null) || (value != null && value.equals(converter.call((String) compare)))) {
-                        evaluatedIndexes.add((HashSet<Integer>) indexesSet);
-                    }
-                });
+                HashSet<Integer> tmp = (HashSet<Integer>) column.getRows().get(converter.call((String) compare));
+                if (tmp != null)
+                    evaluatedIndexes.add(tmp);
             }
         }
 
         // If there was a filter on this server use evaluatedIndex, else return all indexes on all selected columns
-        boolean filterOccurred = evaluatedIndexes.isEmpty() && !toEvaluate.isEmpty();
+        boolean filterOccurred = !toEvaluate.isEmpty();
         if (evaluatedIndexes.isEmpty() && filterOccurred)
             return new SelectResponse();
 
@@ -63,7 +61,17 @@ public class LocalSelectHandler implements SelectHandler {
             }
         }
 
+        // Building response
         for (Integer index : indexes) {
+            boolean pass = false;
+            for (HashSet<Integer> indexSet : evaluatedIndexes) {
+                if (!indexSet.contains(index)) {
+                    pass = true;
+                    break;
+                }
+            }
+            if (!pass)
+                continue;
             HashMap<String, Object> row = new HashMap<>();
             for (Column column : toShow) {
                 LambdaTypeConverter converter = column.getConverter();
