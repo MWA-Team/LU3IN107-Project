@@ -32,7 +32,7 @@ public class SelectResponse {
             for(int index : selectResponse.rows.keySet()) {
                 if(index < 0) {
                     HashMap<String, Object> columns = selectResponse.rows.get(index);
-                    int groupByIndex = (int)columns.entrySet().stream().findFirst().get().getValue();
+                    //int groupByIndex = (int)columns.entrySet().stream().findFirst().get().getValue();
 
                     retval.add(index, columns);
                 }

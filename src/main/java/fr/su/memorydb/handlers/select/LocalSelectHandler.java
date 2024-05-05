@@ -95,7 +95,7 @@ public class LocalSelectHandler implements SelectHandler {
                     HashMap base = new HashMap();
 
                     for(Column column1 : toShow) {
-                        base.put(column1.getName(), groupByIndex); //we can't access specific index here, so we will access to it later in SelectResponse
+                        base.put(column1.getName(), obj); //we can't access specific index here, so we will access to it later in SelectResponse
                     }
 
                     selectResponse.add(index, base);
