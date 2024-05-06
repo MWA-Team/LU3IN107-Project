@@ -99,16 +99,8 @@ public class ForwardingManager {
             }
         }
         
-        // Here, manage error codes and how to re-build the content for the Response
-        List<Response> entities = new ArrayList<>();
-        List<Response> errors = new ArrayList<>();
-        for (Response r : responses) {
-            if (r.getStatus() != HttpStatus.OK_200)
-                errors.add(r);
-            else
-                entities.add(r);
-        }
-        Response response = !errors.isEmpty() ? Response.status(404).entity(errors).build() : Response.status(200).entity(entities).build();
+        List<Response> entities = new LinkedList<>(responses);
+        Response response = Response.status(200).entity(entities).build();
         return response;
     }
 
