@@ -20,7 +20,9 @@ import org.apache.parquet.schema.MessageType;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
+import java.util.*;
+
+import org.xerial.snappy.Snappy;
 
 @Singleton
 public class LocalInsertionHandler implements InsertionHandler {
@@ -34,8 +36,8 @@ public class LocalInsertionHandler implements InsertionHandler {
 
     private void handlerFile(String absolutePath) {
         Configuration conf = new Configuration();
-
         try {
+            HashMap<Column, HashMap<Object, LinkedList<Integer>>> map = new HashMap<>();
             ParquetMetadata readFooter = ParquetFileReader.readFooter(conf, new Path(absolutePath), ParquetMetadataConverter.NO_FILTER);
             MessageType schema = readFooter.getFileMetaData().getSchema();
 
@@ -48,27 +50,45 @@ public class LocalInsertionHandler implements InsertionHandler {
                     RecordReader<Group> recordReader = columnIO.getRecordReader(pages, new GroupRecordConverter(schema));
                     for (long i = 0; i < rows; i++) {
                         Group g = recordReader.read();
-                        addGroup(g, count++);
+                        addGroup(map, g, count++);
                     }
                 }
+                for (Column c : Database.getInstance().getTables().get("test").getColumns()) {
+                    HashMap<Object, LinkedList<Integer>> rows = map.get(c.getName());
+                    if (rows == null)
+                        continue;
+                    for (Object val : rows.keySet()) {
+                        c.addRows(val, rows.get(val));
+                    }
+                }
+            } catch (IOException e) {
+                System.err.println("Error reading parquet file.");
+                e.printStackTrace();
             }
         } catch (IOException e) {
-            System.err.println("Error reading parquet file.");
+            System.err.println("Error creating parquet file reader.");
             e.printStackTrace();
         }
     }
 
-    private static void addGroup(Group g, int index) {
+    private static <T> void addGroup(HashMap<Column, HashMap<Object, LinkedList<Integer>>> map, Group g, int index) {
         for (Column c : Database.getInstance().getTables().get("test").getColumns()) {
             if (!c.stored())
                 continue;
             try {
+                T val;
                 if (g.getFieldRepetitionCount(c.getName()) != 0)
-                    c.addRowGroup(g, c.getName(), index);
+                    val = (T) c.getType().cast(c.getLambda().call(g, c.getName(), 0));
                 else
-                    c.addRowValue(null, index);
+                    val = null;
+                HashMap<Object, LinkedList<Integer>> column = map.computeIfAbsent(c, k -> new HashMap<>());
+                List<Integer> list = column.computeIfAbsent(val, k -> new LinkedList<>());
+                list.add(index);
             } catch (Exception e) {
-                c.addRowValue(null, index);
+                T val = null;
+                HashMap<Object, LinkedList<Integer>> column = map.computeIfAbsent(c, k -> new HashMap<>());
+                List<Integer> list = column.computeIfAbsent(val, k -> new LinkedList<>());
+                list.add(index);
             }
         }
     }

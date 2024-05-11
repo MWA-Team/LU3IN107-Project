@@ -4,28 +4,33 @@ import fr.su.memorydb.utils.lambda.LambdaInsertion;
 import fr.su.memorydb.utils.lambda.LambdaTypeConverter;
 import org.apache.parquet.example.data.Group;
 import org.apache.parquet.example.data.GroupValueSource;
+import org.xerial.snappy.Snappy;
 
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
 
 public class Column<T> {
 
+    private final Table table;
     private final String name;
     private final boolean stored;
     private Class<T> type;
     private LambdaInsertion lambda;
     private LambdaTypeConverter<T> converter;
 
-    private final HashMap<T, HashSet<Integer>> rows; // Linked list are good because we don't access specific indexes and insert data a lot
+    private final HashMap<T, byte[]> rows;
 
     public Column() {
         name = "Injected";
         stored = true;
         rows = new HashMap<>();
         converter = (String o) -> null;
+        table = null;
     }
 
-    public Column(String name, boolean stored, Class<T> type) {
+    public Column(Table table, String name, boolean stored, Class<T> type) {
+        this.table = table;
         this.name = name;
         this.stored = stored;
         this.rows = new HashMap<>();
@@ -67,33 +72,37 @@ public class Column<T> {
         return rows.keySet();
     }
 
-    public HashSet<Integer> getAllIndexes() {
-        HashSet<Integer> retval = new HashSet<>();
-        for (HashSet<Integer> row : rows.values()) {
-            retval.addAll(row);
+    public int[] getAllIndexes() {
+        int[] indexes = new int[table.getRowsCounter()];
+        for (int i = 0; i < indexes.length; i++) {
+            indexes[i] = i;
         }
-        return retval;
+        return indexes;
     }
 
-    public T getValue(Integer index) {
-        for (Map.Entry<T, HashSet<Integer>> row : rows.entrySet()) {
-            if (row.getValue().contains(index))
-                return row.getKey();
+    public T getValue(Integer index) throws IOException {
+        for (Map.Entry<T, byte[]> row : rows.entrySet()) {
+            for (int tmpIndex : Snappy.uncompressIntArray(row.getValue())) {
+                if (tmpIndex == index)
+                    return type.cast(row.getKey());
+            }
         }
         return null;
     }
 
-    public HashMap<T, HashSet<Integer>> getRows() { return rows; }
+    public HashMap<T, byte[]> getRows() { return rows; }
 
-    public void addRowGroup(Group g, String field, int index) {
-        T val = type.cast(lambda.call(g, field, 0));
-        HashSet<Integer> row = rows.computeIfAbsent(val, k -> new HashSet<>());
-        row.add(index);
-    }
-
-    public void addRowValue(T val, int index) {
-        HashSet<Integer> row = rows.computeIfAbsent(val, k -> new HashSet<>());
-        row.add(index);
+    public void addRows(T val, List<Integer> indexes) throws IOException {
+        byte[] row = rows.get(val);
+        if (row == null)
+            rows.put(val, Snappy.compress(indexes.stream().mapToInt(Integer::intValue).toArray()));
+        else {
+            int[] tmp = Snappy.uncompressIntArray(row);
+            for (int i : tmp) {
+                indexes.add(i);
+            }
+            rows.put(val, Snappy.compress((indexes.stream()).mapToInt(Integer::intValue).toArray()));
+        }
     }
 
     public boolean stored() {
@@ -106,6 +115,10 @@ public class Column<T> {
 
     public LambdaTypeConverter<T> getConverter() {
         return converter;
+    }
+
+    public LambdaInsertion getLambda() {
+        return lambda;
     }
 
 }

@@ -57,25 +57,25 @@ public class LocalTableHandler implements TableHandler {
             Column newColumn = null;
             switch (tableParameter.getType().toLowerCase()) {
                 case "boolean":
-                    newColumn = new Column<Boolean>(tableParameter.getName(), stored, Boolean.class);
+                    newColumn = new Column<Boolean>(table, tableParameter.getName(), stored, Boolean.class);
                     break;
                 case "int32":
-                    newColumn = new Column<Integer>(tableParameter.getName(), stored, Integer.class);
+                    newColumn = new Column<Integer>(table, tableParameter.getName(), stored, Integer.class);
                     break;
                 case "int64":
-                    newColumn = new Column<Long>(tableParameter.getName(), stored, Long.class);
+                    newColumn = new Column<Long>(table, tableParameter.getName(), stored, Long.class);
                     break;
                 case "int96":
-                    newColumn = new Column<BigInteger>(tableParameter.getName(), stored, BigInteger.class);
+                    newColumn = new Column<BigInteger>(table, tableParameter.getName(), stored, BigInteger.class);
                     break;
                 case "float":
-                    newColumn = new Column<Float>(tableParameter.getName(), stored, Float.class);
+                    newColumn = new Column<Float>(table, tableParameter.getName(), stored, Float.class);
                     break;
                 case "double":
-                    newColumn = new Column<Double>(tableParameter.getName(), stored, Double.class);
+                    newColumn = new Column<Double>(table, tableParameter.getName(), stored, Double.class);
                     break;
                 default:
-                    newColumn = new Column<String>(tableParameter.getName(), stored, String.class);
+                    newColumn = new Column<String>(table, tableParameter.getName(), stored, String.class);
             }
             table.addColumn(newColumn);
         }

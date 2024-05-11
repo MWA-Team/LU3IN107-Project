@@ -7,13 +7,14 @@ import fr.su.memorydb.handlers.select.response.SelectResponse;
 import fr.su.memorydb.utils.lambda.LambdaTypeConverter;
 import jakarta.inject.Singleton;
 
+import java.io.IOException;
 import java.util.*;
 
 @Singleton
 public class LocalSelectHandler implements SelectHandler {
 
     @Override
-    public SelectResponse select(TableSelection.SelectBody selectBody) {
+    public SelectResponse select(TableSelection.SelectBody selectBody) throws IOException {
         HashSet<Column> toShow = new HashSet<>();
         HashSet<Column> toEvaluate = new HashSet<>();
         LinkedList<HashSet<Integer>> evaluatedIndexes = new LinkedList<>();
@@ -55,7 +56,7 @@ public class LocalSelectHandler implements SelectHandler {
             indexes = evaluatedIndexes.pop();
         else {
             for (Column column : toShow) {
-                indexes = column.getAllIndexes();
+                //indexes = column.getAllIndexes();
                 break;
             }
         }
