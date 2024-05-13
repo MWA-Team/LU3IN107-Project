@@ -91,11 +91,11 @@ public class LocalSelectHandler implements SelectHandler {
                 for(Object obj : clm.getRows().keySet()) { //Represent all distinct data in column
 
                     int groupByIndex = ((HashSet<Integer>)clm.getRows().get(obj)).iterator().next();
-                    if(!selectResponse.containIndex(groupByIndex)) continue; //in case the where clause removed some of the group by values
+                    //if(!selectResponse.containIndex(groupByIndex)) continue; //in case the where clause removed some of the group by values
                     HashMap base = new HashMap();
 
                     for(Column column1 : toShow) {
-                        base.put(column1.getName(), obj); //we can't access specific index here, so we will access to it later in SelectResponse
+                        base.put(column1.getName(), (column1.getName().equals(column)) ? obj : Double.NaN); //we can't access specific index here, so we will access to it later in SelectResponse
                     }
 
                     selectResponse.add(index, base);

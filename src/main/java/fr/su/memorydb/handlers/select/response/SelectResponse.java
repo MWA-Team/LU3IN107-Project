@@ -18,7 +18,7 @@ public class SelectResponse {
         this.rows = new HashMap<>();
     }
 
-    public SelectResponse merge(List<SelectResponse> responses) {
+    public SelectResponse merge(List<SelectResponse> responses, TableSelection.SelectBody selectBody) {
         if(responses == null || responses.isEmpty()) { return this; }
 
         SelectResponse retval = new SelectResponse();
@@ -33,6 +33,12 @@ public class SelectResponse {
                 if(index < 0) {
                     HashMap<String, Object> columns = selectResponse.rows.get(index);
                     //int groupByIndex = (int)columns.entrySet().stream().findFirst().get().getValue();
+
+                    for(Map.Entry<String, Object> entry : columns.entrySet()) {
+                        if(!selectBody.getGroupBy().equals(entry.getKey())) {
+                            columns.put(entry.getKey(), Double.NaN);
+                        }
+                    }
 
                     retval.add(index, columns);
                 }
@@ -65,7 +71,7 @@ public class SelectResponse {
     public SelectResponse aggregate(TableSelection.SelectBody selectBody) {
 
         try {
-            if(!InetAddress.getLocalHost().getHostAddress().equals("192.168.1.20")) {
+            if(!InetAddress.getLocalHost().getHostAddress().equals("127.0.0.1")) {
 
                 return this;
             }
@@ -75,25 +81,68 @@ public class SelectResponse {
 
         if(selectBody.hasGroupBy()) {
 
-            HashMap<Integer, HashMap<String, Object>> groupBy = (HashMap<Integer, HashMap<String, Object>>) rows.entrySet().stream()
+            HashMap<Integer, HashMap<String, Object>> rowsCopy = new HashMap<>(rows);
+
+            HashMap<Integer, HashMap<String, Object>> groupedRows = rows.entrySet().stream()
                     .filter(entry -> entry.getKey() < 0)
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                    .collect(HashMap::new,
+                            (map, entry) -> map.put(entry.getKey(), new HashMap<>(entry.getValue())),
+                            HashMap::putAll);
 
-            for(int i : groupBy.keySet()) {
+            HashMap<Integer, HashMap<String, Object>> finalRows = new HashMap<>();
 
-                for(String clm : groupBy.get(i).keySet()) {
+            for (int groupKey : groupedRows.keySet()) {
+                HashMap<String, Object> currentGroup = groupedRows.get(groupKey);
+                int groupByIndex = -1;
+                Object res = currentGroup.get(selectBody.getGroupBy());
 
-                    if(groupBy.get(i).get(clm) instanceof Integer index) {
+                for (String column : currentGroup.keySet()) {
+                    Object columnValue = currentGroup.get(column);
 
-                        rows.get(i).put(clm, rows.get(index).get(clm));
+                    if (!(columnValue instanceof Double && Double.isNaN((Double) columnValue))) {
+                        if (groupByIndex == -1) {
+                            for (Map.Entry<Integer, HashMap<String, Object>> entry : rowsCopy.entrySet()) {
+                                if (entry.getKey() >= 0 && Objects.equals(entry.getValue().get(selectBody.getGroupBy()), res)) {
+                                    groupByIndex = entry.getKey();
+                                    break;
+                                }
+                            }
+
+                            if (groupByIndex == -1) {
+                                break;
+                            }
+                        }
+
+                        HashMap<String, Object> sourceGroup = rowsCopy.get(groupByIndex);
+
+                        if (selectBody.hasSumAggregate()) {
+
+                            for (String sumColumn : selectBody.getAggregate().getSum()) {
+
+                                String columnName = "sum-" + sumColumn;
+                                double sum = 0;
+
+                                for (Map.Entry<Integer, HashMap<String, Object>> entry : rowsCopy.entrySet()) {
+                                    if (entry.getKey() >= 0 && Objects.equals(entry.getValue().get(selectBody.getGroupBy()), res)) {
+
+                                        if(entry.getValue().get(sumColumn) instanceof Number number) {
+
+                                            sum+=number.doubleValue();
+                                        }
+
+                                    }
+                                }
+
+                                sourceGroup.put(columnName, sum);
+                            }
+                        }
+
+                        finalRows.put(groupKey, sourceGroup);
                     }
                 }
-
-
             }
 
-            rows = groupBy;
-
+            rows = finalRows;
         }
 
         return this;
