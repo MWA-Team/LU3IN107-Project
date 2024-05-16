@@ -6,6 +6,7 @@ import fr.su.memorydb.database.Database;
 import fr.su.memorydb.handlers.select.response.SelectResponse;
 import fr.su.memorydb.utils.lambda.LambdaTypeConverter;
 import jakarta.inject.Singleton;
+import org.xerial.snappy.Snappy;
 
 import java.io.IOException;
 import java.util.*;
@@ -17,7 +18,7 @@ public class LocalSelectHandler implements SelectHandler {
     public SelectResponse select(TableSelection.SelectBody selectBody) throws IOException {
         HashSet<Column> toShow = new HashSet<>();
         HashSet<Column> toEvaluate = new HashSet<>();
-        LinkedList<HashSet<Integer>> evaluatedIndexes = new LinkedList<>();
+        LinkedList<int[]> evaluatedIndexes = new LinkedList<>();
         SelectResponse selectResponse = new SelectResponse();
 
         // Parsing which column to show and which column to evaluate (where clause)
@@ -41,9 +42,9 @@ public class LocalSelectHandler implements SelectHandler {
             TableSelection.Operand operand = selectBody.getWhere().get(column.getName()).getOperand();
 
             if (operand.equals(TableSelection.Operand.EQUALS)) {
-                HashSet<Integer> tmp = (HashSet<Integer>) column.getRows().get(converter.call((String) compare));
-                if (tmp != null)
-                    evaluatedIndexes.add(tmp);
+                int[] indexes = column.get(converter.call((String) compare));
+                if (indexes != null)
+                    evaluatedIndexes.add(indexes);
             }
         }
 
@@ -51,31 +52,41 @@ public class LocalSelectHandler implements SelectHandler {
         if (evaluatedIndexes.isEmpty() && !toEvaluate.isEmpty())
             return new SelectResponse();
 
-        HashSet<Integer> indexes = null;
+        int[] indexes = null;
         if (!evaluatedIndexes.isEmpty())
             indexes = evaluatedIndexes.pop();
         else {
             for (Column column : toShow) {
-                //indexes = column.getAllIndexes();
+                indexes = column.getAllIndexes();
                 break;
             }
         }
 
+        HashMap<Column, Object[]> columnsValues = new HashMap<>();
+        for (Column column : toShow) {
+            columnsValues.put(column, column.getValuesAsArray());
+        }
         // Building response
         for (Integer index : indexes) {
             boolean pass = false;
-            for (HashSet<Integer> indexSet : evaluatedIndexes) {
-                if (!indexSet.contains(index)) {
+
+            for (int[] indexSet : evaluatedIndexes) {
+                int found = Arrays.binarySearch(indexSet, index);
+                if (found < 0) {
                     pass = true;
                     break;
                 }
             }
+
             if (!evaluatedIndexes.isEmpty() && pass)
                 continue;
+
+            /*
+            CETTE PARTIE A OPTI UN MAX
+             */
             HashMap<String, Object> row = new HashMap<>();
             for (Column column : toShow) {
-                LambdaTypeConverter converter = column.getConverter();
-                row.put(column.getName(), converter.call(String.valueOf(column.getValue(index))));
+                row.put(column.getName(), columnsValues.get(column)[index]);
             }
             selectResponse.add(index, row);
         }

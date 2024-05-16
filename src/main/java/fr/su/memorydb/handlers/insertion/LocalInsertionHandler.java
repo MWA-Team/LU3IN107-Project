@@ -2,6 +2,7 @@ package fr.su.memorydb.handlers.insertion;
 
 import fr.su.memorydb.database.Column;
 import fr.su.memorydb.database.Database;
+import fr.su.memorydb.database.Table;
 import fr.su.memorydb.utils.exceptions.WrongTableFormatException;
 import jakarta.inject.Singleton;
 import org.apache.hadoop.conf.Configuration;
@@ -40,7 +41,7 @@ public class LocalInsertionHandler implements InsertionHandler {
             HashMap<Column, HashMap<Object, LinkedList<Integer>>> map = new HashMap<>();
             ParquetMetadata readFooter = ParquetFileReader.readFooter(conf, new Path(absolutePath), ParquetMetadataConverter.NO_FILTER);
             MessageType schema = readFooter.getFileMetaData().getSchema();
-
+            Table table = Database.getInstance().getTables().get("test");
             try (ParquetFileReader r = new ParquetFileReader(conf, new Path(absolutePath), readFooter)) {
                 PageReadStore pages = null;
                 int count = 0;
@@ -51,16 +52,19 @@ public class LocalInsertionHandler implements InsertionHandler {
                     for (long i = 0; i < rows; i++) {
                         Group g = recordReader.read();
                         addGroup(map, g, count++);
+                        table.rowsCounter++;
                     }
                 }
-                for (Column c : Database.getInstance().getTables().get("test").getColumns()) {
-                    HashMap<Object, LinkedList<Integer>> rows = map.get(c.getName());
+                for (Column c : table.getColumns()) {
+                    HashMap<Object, LinkedList<Integer>> rows = map.get(c);
                     if (rows == null)
                         continue;
                     for (Object val : rows.keySet()) {
                         c.addRows(val, rows.get(val));
                     }
+                    c.initValues();
                 }
+
             } catch (IOException e) {
                 System.err.println("Error reading parquet file.");
                 e.printStackTrace();
