@@ -1,20 +1,18 @@
 package fr.su.memorydb.database;
 
+import com.aayushatharva.brotli4j.encoder.Encoder;
 import fr.su.memorydb.utils.lambda.LambdaCompressValues;
 import fr.su.memorydb.utils.lambda.LambdaInsertion;
 import fr.su.memorydb.utils.lambda.LambdaTypeConverter;
 import fr.su.memorydb.utils.lambda.LambdaUncompressValues;
+import fr.su.memorydb.utils.streams.outputstreams.*;
 import org.apache.parquet.example.data.Group;
 import org.apache.parquet.example.data.GroupValueSource;
 import org.xerial.snappy.Snappy;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Array;
-import java.math.BigInteger;
 import java.util.*;
-import java.util.stream.Stream;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
@@ -24,13 +22,17 @@ public class Column<T> {
     private final String name;
     private final boolean stored;
     private final HashMap<T, byte[]> rows;
-    private T[] values = null;
+    private byte[] values = null;
+
+    // Change this value to influence the level of compression
+    private Encoder.Parameters compressParams = new Encoder.Parameters().setQuality(0);
 
     private Class<T> type;
     private LambdaInsertion lambda;
     private LambdaTypeConverter<T> converter;
     private LambdaCompressValues lambdaCompressValues;
     private LambdaUncompressValues lambdaUncompressValues;
+
 
     public Column() {
         name = "Injected";
@@ -51,14 +53,17 @@ public class Column<T> {
         if (type.equals(Boolean.class)) {
             lambda = GroupValueSource::getBoolean;
             converter = (String o) -> !Objects.equals(o, "null") ? type.cast(Boolean.parseBoolean(o)) : null;
-            /*lambdaCompressValues = (Object[] array) -> {
-                byte[] byteArray = new byte[array.length];
+            lambdaCompressValues = (Object[] array) -> {
+                BooleanOutputStream out = new BooleanOutputStream();
+
                 for (int i = 0; i < array.length; i++) {
-                    byteArray[i] = (byte) ((Boolean) array[i] ? 1 : 0);
+                    out.writeBoolean((Boolean) array[i]);
                 }
-                return byteArray;
+                out.finish();
+                return Encoder.compress(out.toByteArray(), compressParams);
+//                return Snappy.compress(out.toByteArray());
             };
-            lambdaUncompressValues = (byte[] array) -> {
+            /*lambdaUncompressValues = (byte[] array) -> {
                 Boolean[] uncompressedArray = new Boolean[array.length];
                 for (int i = 0; i < array.length; i++) {
                     uncompressedArray[i] = array[i] == 1 ? Boolean.TRUE : Boolean.FALSE;
@@ -68,74 +73,48 @@ public class Column<T> {
         } else if (type.equals(Integer.class)) {
             lambda = GroupValueSource::getInteger;
             converter = (String o) -> !Objects.equals(o, "null") ? type.cast(Integer.parseInt(o)) : null;
-            /*lambdaCompressValues = (Object[] array) -> {
-                int[] primitiveArray = new int[array.length];
+            lambdaCompressValues = (Object[] array) -> {
+                IntegerOutputStream out = new IntegerOutputStream();
                 for (int i = 0; i < array.length; i++) {
-                        primitiveArray[i] = array[i] != null ? (Integer) array[i] : null;
+                        out.writeInteger((Integer) array[i]);
                 }
-                return Snappy.compress(primitiveArray);
+                out.finish();
+                return Encoder.compress(out.toByteArray(), compressParams);
+//                return Snappy.compress(out.toByteArray());
             };
-            lambdaUncompressValues = (byte[] array) -> {
+            /*lambdaUncompressValues = (byte[] array) -> {
                 int[] uncompressedArray = Snappy.uncompressIntArray(array);
                 return Arrays.stream(uncompressedArray).mapToObj(value -> (Integer) value).toArray();
             };*/
         } else if (type.equals(Long.class)) {
             lambda = GroupValueSource::getLong;
             converter = (String o) -> !Objects.equals(o, "null") ? type.cast(Long.parseLong(o)) : null;
-            /*lambdaCompressValues = (Object[] array) -> {
-                long[] primitiveArray = new long[array.length];
+            lambdaCompressValues = (Object[] array) -> {
+                LongOutputStream out = new LongOutputStream();
                 for (int i = 0; i < array.length; i++) {
-                    primitiveArray[i] = (Long) array[i];
+                    out.writeLong((Long) array[i]);
                 }
-                return Snappy.compress(primitiveArray);
+                out.finish();
+                return Encoder.compress(out.toByteArray(), compressParams);
+//                return Snappy.compress(out.toByteArray());
             };
-            lambdaUncompressValues = (byte[] array) -> {
+            /*lambdaUncompressValues = (byte[] array) -> {
                 long[] uncompressedArray = Snappy.uncompressLongArray(array);
                 return Arrays.stream(uncompressedArray).mapToObj(value -> (Long) value).toArray();
             };*/
-        } else if (type.equals(BigInteger.class)) {
-            lambda = GroupValueSource::getInt96;
-            converter = (String o) -> !Objects.equals(o, "null") ? type.cast(BigInteger.valueOf(Long.parseLong(o))) : null;
-            /*lambdaCompressValues = (Object[] array) -> {
-                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                try (DeflaterOutputStream deflaterOutputStream = new DeflaterOutputStream(byteArrayOutputStream)) {
-                    for (Object bigInt : array) {
-                        byte[] strBytes = ((BigInteger) bigInt).toString().getBytes();
-                        deflaterOutputStream.write(strBytes.length >> 8);
-                        deflaterOutputStream.write(strBytes.length);
-                        deflaterOutputStream.write(strBytes);
-                    }
-                }
-                return byteArrayOutputStream.toByteArray();
-            };
-            lambdaUncompressValues = (byte[] array) -> {
-                ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(array);
-                try (InflaterInputStream inflaterInputStream = new InflaterInputStream(byteArrayInputStream)) {
-                    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                    int len;
-                    while ((len = inflaterInputStream.read()) != -1) {
-                        len <<= 8;
-                        len |= inflaterInputStream.read();
-                        byte[] buffer = new byte[len];
-                        inflaterInputStream.read(buffer);
-                        byteArrayOutputStream.write(buffer);
-                    }
-                    String[] strings = byteArrayOutputStream.toString().split("\0");
-                    // TODO
-                    return null;
-                }
-            };*/
-        } else if (type.equals(Float.class)) {
+        }  else if (type.equals(Float.class)) {
             lambda = GroupValueSource::getFloat;
             converter = (String o) -> !Objects.equals(o, "null") ? type.cast(Float.parseFloat(o)) : null;
-            /*lambdaCompressValues = (Object[] array) -> {
-                float[] primitiveArray = new float[array.length];
+            lambdaCompressValues = (Object[] array) -> {
+                FloatOutputStream out = new FloatOutputStream();
                 for (int i = 0; i < array.length; i++) {
-                    primitiveArray[i] = (Float) array[i];
+                    out.writeFloat((Float) array[i]);
                 }
-                return Snappy.compress(primitiveArray);
+                out.finish();
+                return Encoder.compress(out.toByteArray(), compressParams);
+//                return Snappy.compress(out.toByteArray());
             };
-            lambdaUncompressValues = (byte[] array) -> {
+            /*lambdaUncompressValues = (byte[] array) -> {
                 float[] uncompressedArray = Snappy.uncompressFloatArray(array);
                 Float[] floatArray = new Float[uncompressedArray.length];
                 for (int i = 0; i < uncompressedArray.length; i++) {
@@ -146,14 +125,16 @@ public class Column<T> {
         } else if (type.equals(Double.class)) {
             lambda = GroupValueSource::getDouble;
             converter = (String o) -> !Objects.equals(o, "null") ? type.cast(Double.parseDouble(o)) : null;
-           /*lambdaCompressValues = (Object[] array) -> {
-                double[] primitiveArray = new double[array.length];
-                for (int i = 0; i < array.length; i++) {
-                    primitiveArray[i] = (Double) array[i];
-                }
-                return Snappy.compress(primitiveArray);
-            };
-            lambdaUncompressValues = (byte[] array) -> {
+           lambdaCompressValues = (Object[] array) -> {
+               DoubleOutputStream out = new DoubleOutputStream();
+               for (int i = 0; i < array.length; i++) {
+                   out.writeDouble((Double) array[i]);
+               }
+               out.finish();
+                return Encoder.compress(out.toByteArray(), compressParams);
+//               return Snappy.compress(out.toByteArray());
+           };
+            /*lambdaUncompressValues = (byte[] array) -> {
                 double[] uncompressedArray = Snappy.uncompressDoubleArray(array);
                 return Arrays.stream(uncompressedArray).mapToObj(value -> (Double) value).toArray();
             };*/
@@ -163,19 +144,16 @@ public class Column<T> {
                 return g.getValueToString(i, index);
             };
             converter = (String o) -> !Objects.equals(o, "null") ? type.cast(o) : null;
-            /*lambdaCompressValues = (Object[] array) -> {
-                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                try (DeflaterOutputStream deflaterOutputStream = new DeflaterOutputStream(byteArrayOutputStream)) {
-                    for (Object str : array) {
-                        byte[] strBytes = str.toString().getBytes();
-                        deflaterOutputStream.write(strBytes.length >> 8);
-                        deflaterOutputStream.write(strBytes.length);
-                        deflaterOutputStream.write(strBytes);
-                    }
+            lambdaCompressValues = (Object[] array) -> {
+                StringOutputStream out = new StringOutputStream();
+                for (int i = 0; i < array.length; i++) {
+                    out.writeString((String) array[i]);
                 }
-                return byteArrayOutputStream.toByteArray();
+                out.finish();
+                return Encoder.compress(out.toByteArray(), compressParams);
+//                return Snappy.compress(out.toByteArray());
             };
-            lambdaUncompressValues = (byte[] array) -> {
+            /*lambdaUncompressValues = (byte[] array) -> {
                 ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(array);
                 try (InflaterInputStream inflaterInputStream = new InflaterInputStream(byteArrayInputStream)) {
                     ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -215,16 +193,6 @@ public class Column<T> {
         return Snappy.uncompressIntArray(indexes);
     }
 
-    public T getValue(Integer index) throws IOException {
-        for (Map.Entry<T, byte[]> row : rows.entrySet()) {
-            for (int tmpIndex : Snappy.uncompressIntArray(row.getValue())) {
-                if (tmpIndex == index)
-                    return type.cast(row.getKey());
-            }
-        }
-        return null;
-    }
-
     public HashMap<T, byte[]> getRows() { return rows; }
 
     public void addRows(T val, List<Integer> indexes) throws IOException {
@@ -261,18 +229,19 @@ public class Column<T> {
     }
 
     public void initValues() throws IOException {
-        values = (T[]) Array.newInstance(type, table.getRowsCounter());
+        T[] tmp = (T[]) Array.newInstance(type, table.getRowsCounter());
         for (Map.Entry<T, byte[]> row : rows.entrySet()) {
             int[] indexes = Snappy.uncompressIntArray(row.getValue());
             for (int i = 0; i < indexes.length; i++) {
                 T val = row.getKey();
-                values[indexes[i]] = val;
+                tmp[indexes[i]] = val;
             }
         }
+        values = lambdaCompressValues.call(tmp);
     }
 
+    // TODO
     public T[] getValuesAsArray() throws IOException {
-        return values;
+        return null;
     }
-
 }
