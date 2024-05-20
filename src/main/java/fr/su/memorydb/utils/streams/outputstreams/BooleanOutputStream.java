@@ -7,13 +7,13 @@ public class BooleanOutputStream extends OutputStream {
 
     private ByteArrayOutputStream byteArrayOutputStream;
     private Boolean prev;
-    private int nb;
+    private int count;
     private boolean first;
 
     public BooleanOutputStream() {
         byteArrayOutputStream = new ByteArrayOutputStream();
         prev = null;
-        nb = 1;
+        count = 1;
         first = true;
     }
 
@@ -26,22 +26,22 @@ public class BooleanOutputStream extends OutputStream {
                 if (prev == null)
                     byteArrayOutputStream.write(0);
                 else {
-                    byteArrayOutputStream.write(nb);
+                    byteArrayOutputStream.write(count);
                     byteArrayOutputStream.write(prev ? 1 : 0);
                     prev = null;
-                    nb = 1;
+                    count = 1;
                 }
             } else {
                 if (prev == null)
                     byteArrayOutputStream.write(0);
                 else {
                     if (!prev.equals(value)) {
-                        byteArrayOutputStream.write(nb);
+                        byteArrayOutputStream.write(count);
                         byteArrayOutputStream.write(prev ? 1 : 0);
-                        nb = 1;
+                        count = 1;
                         prev = value;
                     } else
-                        nb++;
+                        count++;
                 }
             }
         }
@@ -51,10 +51,10 @@ public class BooleanOutputStream extends OutputStream {
         if (prev == null)
             byteArrayOutputStream.write(0);
         else {
-            byteArrayOutputStream.write(nb);
+            byteArrayOutputStream.write(count);
             byteArrayOutputStream.write(prev ? 1 : 0);
             prev = null;
-            nb = 1;
+            count = 1;
         }
         first = true;
     }

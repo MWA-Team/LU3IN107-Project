@@ -65,9 +65,6 @@ public class LocalTableHandler implements TableHandler {
                 case "int64":
                     newColumn = new Column<Long>(table, tableParameter.getName(), stored, Long.class);
                     break;
-                case "int96":
-                    newColumn = new Column<BigInteger>(table, tableParameter.getName(), stored, BigInteger.class);
-                    break;
                 case "float":
                     newColumn = new Column<Float>(table, tableParameter.getName(), stored, Float.class);
                     break;

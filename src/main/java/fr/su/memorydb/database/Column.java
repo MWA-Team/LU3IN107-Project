@@ -5,6 +5,7 @@ import fr.su.memorydb.utils.lambda.LambdaCompressValues;
 import fr.su.memorydb.utils.lambda.LambdaInsertion;
 import fr.su.memorydb.utils.lambda.LambdaTypeConverter;
 import fr.su.memorydb.utils.lambda.LambdaUncompressValues;
+import fr.su.memorydb.utils.streams.inputstreams.*;
 import fr.su.memorydb.utils.streams.outputstreams.*;
 import org.apache.parquet.example.data.Group;
 import org.apache.parquet.example.data.GroupValueSource;
@@ -63,13 +64,14 @@ public class Column<T> {
                 return Encoder.compress(out.toByteArray(), compressParams);
 //                return Snappy.compress(out.toByteArray());
             };
-            /*lambdaUncompressValues = (byte[] array) -> {
-                Boolean[] uncompressedArray = new Boolean[array.length];
-                for (int i = 0; i < array.length; i++) {
-                    uncompressedArray[i] = array[i] == 1 ? Boolean.TRUE : Boolean.FALSE;
+            lambdaUncompressValues = (byte[] array) -> {
+                BooleanInputStream in = new BooleanInputStream(array);
+                Boolean[] uncompressedArray = new Boolean[table.getRowsCounter()];
+                for (int i = 0; i < table.getRowsCounter(); i++) {
+                    uncompressedArray[i] = in.readBoolean();
                 }
                 return uncompressedArray;
-            };*/
+            };
         } else if (type.equals(Integer.class)) {
             lambda = GroupValueSource::getInteger;
             converter = (String o) -> !Objects.equals(o, "null") ? type.cast(Integer.parseInt(o)) : null;
@@ -82,10 +84,14 @@ public class Column<T> {
                 return Encoder.compress(out.toByteArray(), compressParams);
 //                return Snappy.compress(out.toByteArray());
             };
-            /*lambdaUncompressValues = (byte[] array) -> {
-                int[] uncompressedArray = Snappy.uncompressIntArray(array);
-                return Arrays.stream(uncompressedArray).mapToObj(value -> (Integer) value).toArray();
-            };*/
+            lambdaUncompressValues = (byte[] array) -> {
+                IntegerInputStream in = new IntegerInputStream(array);
+                Integer[] uncompressedArray = new Integer[table.getRowsCounter()];
+                for (int i = 0; i < table.getRowsCounter(); i++) {
+                    uncompressedArray[i] = in.readInteger();
+                }
+                return uncompressedArray;
+            };
         } else if (type.equals(Long.class)) {
             lambda = GroupValueSource::getLong;
             converter = (String o) -> !Objects.equals(o, "null") ? type.cast(Long.parseLong(o)) : null;
@@ -98,10 +104,14 @@ public class Column<T> {
                 return Encoder.compress(out.toByteArray(), compressParams);
 //                return Snappy.compress(out.toByteArray());
             };
-            /*lambdaUncompressValues = (byte[] array) -> {
-                long[] uncompressedArray = Snappy.uncompressLongArray(array);
-                return Arrays.stream(uncompressedArray).mapToObj(value -> (Long) value).toArray();
-            };*/
+            lambdaUncompressValues = (byte[] array) -> {
+                LongInputStream in = new LongInputStream(array);
+                Long[] uncompressedArray = new Long[table.getRowsCounter()];
+                for (int i = 0; i < table.getRowsCounter(); i++) {
+                    uncompressedArray[i] = in.readLong();
+                }
+                return uncompressedArray;
+            };
         }  else if (type.equals(Float.class)) {
             lambda = GroupValueSource::getFloat;
             converter = (String o) -> !Objects.equals(o, "null") ? type.cast(Float.parseFloat(o)) : null;
@@ -114,14 +124,14 @@ public class Column<T> {
                 return Encoder.compress(out.toByteArray(), compressParams);
 //                return Snappy.compress(out.toByteArray());
             };
-            /*lambdaUncompressValues = (byte[] array) -> {
-                float[] uncompressedArray = Snappy.uncompressFloatArray(array);
-                Float[] floatArray = new Float[uncompressedArray.length];
-                for (int i = 0; i < uncompressedArray.length; i++) {
-                    floatArray[i] = uncompressedArray[i];
+            lambdaUncompressValues = (byte[] array) -> {
+                FloatInputStream in = new FloatInputStream(array);
+                Float[] uncompressedArray = new Float[table.getRowsCounter()];
+                for (int i = 0; i < table.getRowsCounter(); i++) {
+                    uncompressedArray[i] = in.readFloat();
                 }
-                return floatArray;
-            };*/
+                return uncompressedArray;
+            };
         } else if (type.equals(Double.class)) {
             lambda = GroupValueSource::getDouble;
             converter = (String o) -> !Objects.equals(o, "null") ? type.cast(Double.parseDouble(o)) : null;
@@ -134,10 +144,14 @@ public class Column<T> {
                 return Encoder.compress(out.toByteArray(), compressParams);
 //               return Snappy.compress(out.toByteArray());
            };
-            /*lambdaUncompressValues = (byte[] array) -> {
-                double[] uncompressedArray = Snappy.uncompressDoubleArray(array);
-                return Arrays.stream(uncompressedArray).mapToObj(value -> (Double) value).toArray();
-            };*/
+            lambdaUncompressValues = (byte[] array) -> {
+                DoubleInputStream in = new DoubleInputStream(array);
+                Double[] uncompressedArray = new Double[table.getRowsCounter()];
+                for (int i = 0; i < table.getRowsCounter(); i++) {
+                    uncompressedArray[i] = in.readDouble();
+                }
+                return uncompressedArray;
+            };
         } else {
             lambda = (Group g, String field, int index) -> {
                 int i = g.getType().getFieldIndex(field);
@@ -153,21 +167,14 @@ public class Column<T> {
                 return Encoder.compress(out.toByteArray(), compressParams);
 //                return Snappy.compress(out.toByteArray());
             };
-            /*lambdaUncompressValues = (byte[] array) -> {
-                ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(array);
-                try (InflaterInputStream inflaterInputStream = new InflaterInputStream(byteArrayInputStream)) {
-                    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                    int len;
-                    while ((len = inflaterInputStream.read()) != -1) {
-                        len <<= 8;
-                        len |= inflaterInputStream.read();
-                        byte[] buffer = new byte[len];
-                        inflaterInputStream.read(buffer);
-                        byteArrayOutputStream.write(buffer);
-                    }
-                    return byteArrayOutputStream.toString().split("\0");
+            lambdaUncompressValues = (byte[] array) -> {
+                StringInputStream in = new StringInputStream(array);
+                String[] uncompressedArray = new String[table.getRowsCounter()];
+                for (int i = 0; i < table.getRowsCounter(); i++) {
+                    uncompressedArray[i] = in.readString();
                 }
-            };*/
+                return uncompressedArray;
+            };
         }
     }
 
@@ -240,8 +247,7 @@ public class Column<T> {
         values = lambdaCompressValues.call(tmp);
     }
 
-    // TODO
     public T[] getValuesAsArray() throws IOException {
-        return null;
+        return (T[]) lambdaUncompressValues.call(values);
     }
 }

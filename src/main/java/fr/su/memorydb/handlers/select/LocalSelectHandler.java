@@ -81,9 +81,6 @@ public class LocalSelectHandler implements SelectHandler {
             if (!evaluatedIndexes.isEmpty() && pass)
                 continue;
 
-            /*
-            CETTE PARTIE A OPTI UN MAX
-             */
             HashMap<String, Object> row = new HashMap<>();
             for (Column column : toShow) {
                 row.put(column.getName(), columnsValues.get(column)[index]);
