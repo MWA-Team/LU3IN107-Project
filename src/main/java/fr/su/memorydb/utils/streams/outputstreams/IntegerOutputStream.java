@@ -3,6 +3,7 @@ package fr.su.memorydb.utils.streams.outputstreams;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 
 public class IntegerOutputStream extends OutputStream {
 
@@ -18,33 +19,31 @@ public class IntegerOutputStream extends OutputStream {
         first = true;
     }
 
-    public void writeInteger(Integer value) {
+    public void writeInteger(Integer value) throws IOException {
         if (first) {
             first = false;
             prev = value;
         } else {
             if (value == null) {
                 if (prev == null)
-                    byteArrayOutputStream.write(0);
+                    byteArrayOutputStream.write(new byte[]{0, 0, 0, 0});
                 else {
-                    byteArrayOutputStream.write(nb);
-                    byteArrayOutputStream.write((prev >>> 24) & 0xFF);
-                    byteArrayOutputStream.write((prev >>> 16) & 0xFF);
-                    byteArrayOutputStream.write((prev >>> 8) & 0xFF);
-                    byteArrayOutputStream.write(prev & 0xFF);
+                    byte[] nbBytes = ByteBuffer.allocate(4).putInt(nb).array();
+                    byteArrayOutputStream.write(nbBytes);
+                    byte[] intBytes = ByteBuffer.allocate(4).putInt(prev).array();
+                    byteArrayOutputStream.write(intBytes);
                     prev = null;
                     nb = 1;
                 }
             } else {
                 if (prev == null)
-                    byteArrayOutputStream.write(0);
+                    byteArrayOutputStream.write(new byte[]{0, 0, 0, 0});
                 else {
                     if (!prev.equals(value)) {
-                        byteArrayOutputStream.write(nb);
-                        byteArrayOutputStream.write((prev >>> 24) & 0xFF);
-                        byteArrayOutputStream.write((prev >>> 16) & 0xFF);
-                        byteArrayOutputStream.write((prev >>> 8) & 0xFF);
-                        byteArrayOutputStream.write(prev & 0xFF);
+                        byte[] nbBytes = ByteBuffer.allocate(4).putInt(nb).array();
+                        byteArrayOutputStream.write(nbBytes);
+                        byte[] intBytes = ByteBuffer.allocate(4).putInt(prev).array();
+                        byteArrayOutputStream.write(intBytes);
                         nb = 1;
                         prev = value;
                     } else
@@ -54,15 +53,14 @@ public class IntegerOutputStream extends OutputStream {
         }
     }
 
-    public void finish() {
+    public void finish() throws IOException {
         if (prev == null)
-            byteArrayOutputStream.write(0);
+            byteArrayOutputStream.write(new byte[]{0, 0, 0, 0});
         else {
-            byteArrayOutputStream.write(nb);
-            byteArrayOutputStream.write((prev >>> 24) & 0xFF);
-            byteArrayOutputStream.write((prev >>> 16) & 0xFF);
-            byteArrayOutputStream.write((prev >>> 8) & 0xFF);
-            byteArrayOutputStream.write(prev & 0xFF);
+            byte[] nbBytes = ByteBuffer.allocate(4).putInt(nb).array();
+            byteArrayOutputStream.write(nbBytes);
+            byte[] intBytes = ByteBuffer.allocate(4).putInt(prev).array();
+            byteArrayOutputStream.write(intBytes);
             prev = null;
             nb = 1;
         }

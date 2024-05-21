@@ -1,5 +1,8 @@
 package fr.su.memorydb.database;
 
+import com.aayushatharva.brotli4j.decoder.Decoder;
+import com.aayushatharva.brotli4j.decoder.DecoderJNI;
+import com.aayushatharva.brotli4j.decoder.DirectDecompress;
 import com.aayushatharva.brotli4j.encoder.Encoder;
 import fr.su.memorydb.utils.lambda.LambdaCompressValues;
 import fr.su.memorydb.utils.lambda.LambdaInsertion;
@@ -14,8 +17,6 @@ import org.xerial.snappy.Snappy;
 import java.io.*;
 import java.lang.reflect.Array;
 import java.util.*;
-import java.util.zip.DeflaterOutputStream;
-import java.util.zip.InflaterInputStream;
 
 public class Column<T> {
 
@@ -26,7 +27,7 @@ public class Column<T> {
     private byte[] values = null;
 
     // Change this value to influence the level of compression
-    private Encoder.Parameters compressParams = new Encoder.Parameters().setQuality(0);
+    private Encoder.Parameters compressParams = new Encoder.Parameters().setQuality(1);
 
     private Class<T> type;
     private LambdaInsertion lambda;
@@ -62,10 +63,12 @@ public class Column<T> {
                 }
                 out.finish();
                 return Encoder.compress(out.toByteArray(), compressParams);
-//                return Snappy.compress(out.toByteArray());
             };
             lambdaUncompressValues = (byte[] array) -> {
-                BooleanInputStream in = new BooleanInputStream(array);
+                DirectDecompress tmp = Decoder.decompress(array);
+                if (tmp.getResultStatus() != DecoderJNI.Status.DONE)
+                    throw new IOException("Decompression failed");
+                BooleanInputStream in = new BooleanInputStream(tmp.getDecompressedData());
                 Boolean[] uncompressedArray = new Boolean[table.getRowsCounter()];
                 for (int i = 0; i < table.getRowsCounter(); i++) {
                     uncompressedArray[i] = in.readBoolean();
@@ -82,10 +85,12 @@ public class Column<T> {
                 }
                 out.finish();
                 return Encoder.compress(out.toByteArray(), compressParams);
-//                return Snappy.compress(out.toByteArray());
             };
             lambdaUncompressValues = (byte[] array) -> {
-                IntegerInputStream in = new IntegerInputStream(array);
+                DirectDecompress tmp = Decoder.decompress(array);
+                if (tmp.getResultStatus() != DecoderJNI.Status.DONE)
+                    throw new IOException("Decompression failed");
+                IntegerInputStream in = new IntegerInputStream(tmp.getDecompressedData());
                 Integer[] uncompressedArray = new Integer[table.getRowsCounter()];
                 for (int i = 0; i < table.getRowsCounter(); i++) {
                     uncompressedArray[i] = in.readInteger();
@@ -102,10 +107,12 @@ public class Column<T> {
                 }
                 out.finish();
                 return Encoder.compress(out.toByteArray(), compressParams);
-//                return Snappy.compress(out.toByteArray());
             };
             lambdaUncompressValues = (byte[] array) -> {
-                LongInputStream in = new LongInputStream(array);
+                DirectDecompress tmp = Decoder.decompress(array);
+                if (tmp.getResultStatus() != DecoderJNI.Status.DONE)
+                    throw new IOException("Decompression failed");
+                LongInputStream in = new LongInputStream(tmp.getDecompressedData());
                 Long[] uncompressedArray = new Long[table.getRowsCounter()];
                 for (int i = 0; i < table.getRowsCounter(); i++) {
                     uncompressedArray[i] = in.readLong();
@@ -122,10 +129,12 @@ public class Column<T> {
                 }
                 out.finish();
                 return Encoder.compress(out.toByteArray(), compressParams);
-//                return Snappy.compress(out.toByteArray());
             };
             lambdaUncompressValues = (byte[] array) -> {
-                FloatInputStream in = new FloatInputStream(array);
+                DirectDecompress tmp = Decoder.decompress(array);
+                if (tmp.getResultStatus() != DecoderJNI.Status.DONE)
+                    throw new IOException("Decompression failed");
+                FloatInputStream in = new FloatInputStream(tmp.getDecompressedData());
                 Float[] uncompressedArray = new Float[table.getRowsCounter()];
                 for (int i = 0; i < table.getRowsCounter(); i++) {
                     uncompressedArray[i] = in.readFloat();
@@ -142,10 +151,12 @@ public class Column<T> {
                }
                out.finish();
                 return Encoder.compress(out.toByteArray(), compressParams);
-//               return Snappy.compress(out.toByteArray());
            };
             lambdaUncompressValues = (byte[] array) -> {
-                DoubleInputStream in = new DoubleInputStream(array);
+                DirectDecompress tmp = Decoder.decompress(array);
+                if (tmp.getResultStatus() != DecoderJNI.Status.DONE)
+                    throw new IOException("Decompression failed");
+                DoubleInputStream in = new DoubleInputStream(tmp.getDecompressedData());
                 Double[] uncompressedArray = new Double[table.getRowsCounter()];
                 for (int i = 0; i < table.getRowsCounter(); i++) {
                     uncompressedArray[i] = in.readDouble();
@@ -165,10 +176,12 @@ public class Column<T> {
                 }
                 out.finish();
                 return Encoder.compress(out.toByteArray(), compressParams);
-//                return Snappy.compress(out.toByteArray());
             };
             lambdaUncompressValues = (byte[] array) -> {
-                StringInputStream in = new StringInputStream(array);
+                DirectDecompress tmp = Decoder.decompress(array);
+                if (tmp.getResultStatus() != DecoderJNI.Status.DONE)
+                    throw new IOException("Decompression failed");
+                StringInputStream in = new StringInputStream(tmp.getDecompressedData());
                 String[] uncompressedArray = new String[table.getRowsCounter()];
                 for (int i = 0; i < table.getRowsCounter(); i++) {
                     uncompressedArray[i] = in.readString();
@@ -180,10 +193,6 @@ public class Column<T> {
 
     public String getName() {
         return name;
-    }
-
-    public Set<T> getValues() {
-        return rows.keySet();
     }
 
     public int[] getAllIndexes() {
@@ -245,9 +254,10 @@ public class Column<T> {
             }
         }
         values = lambdaCompressValues.call(tmp);
+        return;
     }
 
-    public T[] getValuesAsArray() throws IOException {
+    public T[] getValues() throws IOException {
         return (T[]) lambdaUncompressValues.call(values);
     }
 }

@@ -26,7 +26,7 @@ public class StringOutputStream extends OutputStream {
         } else {
             if (value == null) {
                 if (prev == null)
-                    byteArrayOutputStream.write(0);
+                    byteArrayOutputStream.write(new byte[]{0, 0, 0, 0});
                 else {
                     byteArrayOutputStream.write(nb);
                     byte[] stringBytes = prev.getBytes(StandardCharsets.UTF_8);
@@ -37,7 +37,7 @@ public class StringOutputStream extends OutputStream {
                 }
             } else {
                 if (prev == null)
-                    byteArrayOutputStream.write(0);
+                    byteArrayOutputStream.write(new byte[]{0, 0, 0, 0});
                 else {
                     if (!prev.equals(value)) {
                         byteArrayOutputStream.write(nb);
@@ -55,7 +55,7 @@ public class StringOutputStream extends OutputStream {
 
     public void finish() throws IOException {
         if (prev == null)
-            byteArrayOutputStream.write(0);
+            byteArrayOutputStream.write(new byte[]{0, 0, 0, 0});
         else {
             byteArrayOutputStream.write(nb);
             byte[] stringBytes = prev.getBytes(StandardCharsets.UTF_8);

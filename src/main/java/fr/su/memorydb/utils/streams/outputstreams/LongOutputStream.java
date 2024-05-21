@@ -26,9 +26,10 @@ public class LongOutputStream extends OutputStream {
         } else {
             if (value == null) {
                 if (prev == null)
-                    byteArrayOutputStream.write(0);
+                    byteArrayOutputStream.write(new byte[]{0, 0, 0, 0});
                 else {
-                    byteArrayOutputStream.write(nb);
+                    byte[] nbBytes = ByteBuffer.allocate(4).putInt(nb).array();
+                    byteArrayOutputStream.write(nbBytes);
                     byte[] longBytes = ByteBuffer.allocate(8).putLong(prev).array();
                     byteArrayOutputStream.write(longBytes);
                     prev = null;
@@ -36,10 +37,11 @@ public class LongOutputStream extends OutputStream {
                 }
             } else {
                 if (prev == null)
-                    byteArrayOutputStream.write(0);
+                    byteArrayOutputStream.write(new byte[]{0, 0, 0, 0});
                 else {
                     if (!prev.equals(value)) {
-                        byteArrayOutputStream.write(nb);
+                        byte[] nbBytes = ByteBuffer.allocate(4).putInt(nb).array();
+                        byteArrayOutputStream.write(nbBytes);
                         byte[] longBytes = ByteBuffer.allocate(8).putLong(prev).array();
                         byteArrayOutputStream.write(longBytes);
                         nb = 1;
@@ -53,9 +55,10 @@ public class LongOutputStream extends OutputStream {
 
     public void finish() throws IOException {
         if (prev == null)
-            byteArrayOutputStream.write(0);
+            byteArrayOutputStream.write(new byte[]{0, 0, 0, 0});
         else {
-            byteArrayOutputStream.write(nb);
+            byte[] nbBytes = ByteBuffer.allocate(4).putInt(nb).array();
+            byteArrayOutputStream.write(nbBytes);
             byte[] longBytes = ByteBuffer.allocate(8).putLong(prev).array();
             byteArrayOutputStream.write(longBytes);
             prev = null;

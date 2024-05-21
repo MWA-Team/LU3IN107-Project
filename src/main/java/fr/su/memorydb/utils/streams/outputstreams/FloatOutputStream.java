@@ -26,9 +26,10 @@ public class FloatOutputStream extends OutputStream {
         } else {
             if (value == null) {
                 if (prev == null)
-                    byteArrayOutputStream.write(0);
+                    byteArrayOutputStream.write(new byte[]{0, 0, 0, 0});
                 else {
-                    byteArrayOutputStream.write(nb);
+                    byte[] nbBytes = ByteBuffer.allocate(4).putInt(nb).array();
+                    byteArrayOutputStream.write(nbBytes);
                     byte[] floatBytes = ByteBuffer.allocate(4).putFloat(prev).array();
                     byteArrayOutputStream.write(floatBytes);
                     prev = null;
@@ -36,10 +37,11 @@ public class FloatOutputStream extends OutputStream {
                 }
             } else {
                 if (prev == null)
-                    byteArrayOutputStream.write(0);
+                    byteArrayOutputStream.write(new byte[]{0, 0, 0, 0});
                 else {
                     if (!prev.equals(value)) {
-                        byteArrayOutputStream.write(nb);
+                        byte[] nbBytes = ByteBuffer.allocate(4).putInt(nb).array();
+                        byteArrayOutputStream.write(nbBytes);
                         byte[] floatBytes = ByteBuffer.allocate(4).putFloat(prev).array();
                         byteArrayOutputStream.write(floatBytes);
                         nb = 1;
@@ -49,21 +51,14 @@ public class FloatOutputStream extends OutputStream {
                 }
             }
         }
-
-        if (value == null) {
-            byteArrayOutputStream.write(0);
-        } else {
-            byteArrayOutputStream.write(1);
-            byte[] floatBytes = ByteBuffer.allocate(4).putFloat(prev).array();
-            byteArrayOutputStream.write(floatBytes);
-        }
     }
 
     public void finish() throws IOException {
         if (prev == null)
-            byteArrayOutputStream.write(0);
+            byteArrayOutputStream.write(new byte[]{0, 0, 0, 0});
         else {
-            byteArrayOutputStream.write(nb);
+            byte[] nbBytes = ByteBuffer.allocate(4).putInt(nb).array();
+            byteArrayOutputStream.write(nbBytes);
             byte[] floatBytes = ByteBuffer.allocate(4).putFloat(prev).array();
             byteArrayOutputStream.write(floatBytes);
             prev = null;

@@ -20,7 +20,11 @@ public class IntegerInputStream extends InputStream {
         if (ite < count) {
             ite++;
         } else {
-            count = byteArrayInputStream.read();
+            byte[] tmp = new byte[4];
+            if (byteArrayInputStream.read(tmp) != 4) {
+                throw new IOException("Failed to read 4 bytes for an Integer (count)");
+            }
+            count = ByteBuffer.wrap(tmp).getInt();
             ite = 1;
             if (count == -1) {
                 throw new IOException("End of stream reached");
@@ -29,7 +33,7 @@ public class IntegerInputStream extends InputStream {
                 value = null;
                 return null;
             }
-            byte[] tmp = new byte[4];
+            tmp = new byte[4];
             if (byteArrayInputStream.read(tmp) != 4) {
                 throw new IOException("Failed to read 4 bytes for an Integer");
             }

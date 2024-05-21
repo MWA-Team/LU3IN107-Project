@@ -6,7 +6,6 @@ import fr.su.memorydb.database.Database;
 import fr.su.memorydb.handlers.select.response.SelectResponse;
 import fr.su.memorydb.utils.lambda.LambdaTypeConverter;
 import jakarta.inject.Singleton;
-import org.xerial.snappy.Snappy;
 
 import java.io.IOException;
 import java.util.*;
@@ -64,7 +63,7 @@ public class LocalSelectHandler implements SelectHandler {
 
         HashMap<Column, Object[]> columnsValues = new HashMap<>();
         for (Column column : toShow) {
-            columnsValues.put(column, column.getValuesAsArray());
+            columnsValues.put(column, column.getValues());
         }
         // Building response
         for (Integer index : indexes) {

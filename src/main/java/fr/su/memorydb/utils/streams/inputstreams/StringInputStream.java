@@ -21,7 +21,11 @@ public class StringInputStream extends InputStream {
         if (ite < count) {
             ite++;
         } else {
-            count = byteArrayInputStream.read();
+            byte[] tmp = new byte[4];
+            if (byteArrayInputStream.read(tmp) != 4) {
+                throw new IOException("Failed to read 4 bytes for an Integer (count)");
+            }
+            count = ByteBuffer.wrap(tmp).getInt();
             ite = 1;
             if (count == -1) {
                 throw new IOException("End of stream reached");
@@ -31,7 +35,7 @@ public class StringInputStream extends InputStream {
                 return null;
             }
             int len = byteArrayInputStream.read();
-            byte[] tmp = new byte[len];
+            tmp = new byte[len];
             if (byteArrayInputStream.read(tmp) != len) {
                 throw new IOException("Failed to read " + len + " bytes for a String");
             }

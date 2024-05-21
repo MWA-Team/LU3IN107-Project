@@ -3,6 +3,7 @@ package fr.su.memorydb.utils.streams.inputstreams;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,7 +22,11 @@ public class BooleanInputStream extends InputStream {
         if (ite < count) {
             ite++;
         } else {
-            count = byteArrayInputStream.read();
+            byte[] tmp = new byte[4];
+            if (byteArrayInputStream.read(tmp) != 4) {
+                throw new IOException("Failed to read 4 bytes for an Integer (count)");
+            }
+            count = ByteBuffer.wrap(tmp).getInt();
             ite = 1;
             if (count == -1) {
                 throw new IOException("End of stream reached");
@@ -30,11 +35,11 @@ public class BooleanInputStream extends InputStream {
                 value = null;
                 return null;
             }
-            int tmp = byteArrayInputStream.read();
-            if (tmp == -1) {
+            int bool = byteArrayInputStream.read();
+            if (bool == -1) {
                 throw new IOException("Failed to read 4 bytes for a Boolean");
             }
-            value = tmp == 1;
+            value = bool == 1;
         }
         return value;
     }
