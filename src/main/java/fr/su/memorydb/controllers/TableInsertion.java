@@ -37,6 +37,8 @@ public class TableInsertion {
             return Response.status(500).entity("Error: " + e.getMessage()).build();
         } catch (IOException e) {
             throw new RuntimeException(e);
+        } finally {
+            System.gc();
         }
     }
 

@@ -57,12 +57,13 @@ public class Column<T> {
             converter = (String o) -> !Objects.equals(o, "null") ? type.cast(Boolean.parseBoolean(o)) : null;
             lambdaCompressValues = (Object[] array) -> {
                 BooleanOutputStream out = new BooleanOutputStream();
-
                 for (int i = 0; i < array.length; i++) {
                     out.writeBoolean((Boolean) array[i]);
                 }
                 out.finish();
-                return Encoder.compress(out.toByteArray(), compressParams);
+                byte[] bytes = out.toByteArray();
+                out.close();
+                return Encoder.compress(bytes, compressParams);
             };
             lambdaUncompressValues = (byte[] array) -> {
                 DirectDecompress tmp = Decoder.decompress(array);
@@ -73,6 +74,7 @@ public class Column<T> {
                 for (int i = 0; i < table.getRowsCounter(); i++) {
                     uncompressedArray[i] = in.readBoolean();
                 }
+                in.close();
                 return uncompressedArray;
             };
         } else if (type.equals(Integer.class)) {
@@ -84,7 +86,9 @@ public class Column<T> {
                         out.writeInteger((Integer) array[i]);
                 }
                 out.finish();
-                return Encoder.compress(out.toByteArray(), compressParams);
+                byte[] bytes = out.toByteArray();
+                out.close();
+                return Encoder.compress(bytes, compressParams);
             };
             lambdaUncompressValues = (byte[] array) -> {
                 DirectDecompress tmp = Decoder.decompress(array);
@@ -95,6 +99,7 @@ public class Column<T> {
                 for (int i = 0; i < table.getRowsCounter(); i++) {
                     uncompressedArray[i] = in.readInteger();
                 }
+                in.close();
                 return uncompressedArray;
             };
         } else if (type.equals(Long.class)) {
@@ -106,7 +111,9 @@ public class Column<T> {
                     out.writeLong((Long) array[i]);
                 }
                 out.finish();
-                return Encoder.compress(out.toByteArray(), compressParams);
+                byte[] bytes = out.toByteArray();
+                out.close();
+                return Encoder.compress(bytes, compressParams);
             };
             lambdaUncompressValues = (byte[] array) -> {
                 DirectDecompress tmp = Decoder.decompress(array);
@@ -117,6 +124,7 @@ public class Column<T> {
                 for (int i = 0; i < table.getRowsCounter(); i++) {
                     uncompressedArray[i] = in.readLong();
                 }
+                in.close();
                 return uncompressedArray;
             };
         }  else if (type.equals(Float.class)) {
@@ -128,7 +136,9 @@ public class Column<T> {
                     out.writeFloat((Float) array[i]);
                 }
                 out.finish();
-                return Encoder.compress(out.toByteArray(), compressParams);
+                byte[] bytes = out.toByteArray();
+                out.close();
+                return Encoder.compress(bytes, compressParams);
             };
             lambdaUncompressValues = (byte[] array) -> {
                 DirectDecompress tmp = Decoder.decompress(array);
@@ -139,6 +149,7 @@ public class Column<T> {
                 for (int i = 0; i < table.getRowsCounter(); i++) {
                     uncompressedArray[i] = in.readFloat();
                 }
+                in.close();
                 return uncompressedArray;
             };
         } else if (type.equals(Double.class)) {
@@ -150,7 +161,9 @@ public class Column<T> {
                    out.writeDouble((Double) array[i]);
                }
                out.finish();
-                return Encoder.compress(out.toByteArray(), compressParams);
+               byte[] bytes = out.toByteArray();
+               out.close();
+               return Encoder.compress(bytes, compressParams);
            };
             lambdaUncompressValues = (byte[] array) -> {
                 DirectDecompress tmp = Decoder.decompress(array);
@@ -161,6 +174,7 @@ public class Column<T> {
                 for (int i = 0; i < table.getRowsCounter(); i++) {
                     uncompressedArray[i] = in.readDouble();
                 }
+                in.close();
                 return uncompressedArray;
             };
         } else {
@@ -175,7 +189,9 @@ public class Column<T> {
                     out.writeString((String) array[i]);
                 }
                 out.finish();
-                return Encoder.compress(out.toByteArray(), compressParams);
+                byte[] bytes = out.toByteArray();
+                out.close();
+                return Encoder.compress(bytes, compressParams);
             };
             lambdaUncompressValues = (byte[] array) -> {
                 DirectDecompress tmp = Decoder.decompress(array);
@@ -186,6 +202,7 @@ public class Column<T> {
                 for (int i = 0; i < table.getRowsCounter(); i++) {
                     uncompressedArray[i] = in.readString();
                 }
+                in.close();
                 return uncompressedArray;
             };
         }
@@ -254,7 +271,6 @@ public class Column<T> {
             }
         }
         values = lambdaCompressValues.call(tmp);
-        return;
     }
 
     public T[] getValues() throws IOException {
