@@ -71,7 +71,7 @@ public class SelectResponse {
     public SelectResponse aggregate(TableSelection.SelectBody selectBody) {
 
         try {
-            if(!InetAddress.getLocalHost().getHostAddress().equals("127.0.0.1")) {
+            if(!InetAddress.getLocalHost().getHostAddress().equals("10.147.17.212")) {
 
                 return this;
             }
