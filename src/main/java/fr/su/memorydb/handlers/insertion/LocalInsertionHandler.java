@@ -38,33 +38,44 @@ public class LocalInsertionHandler implements InsertionHandler {
     private void handlerFile(String absolutePath) {
         Configuration conf = new Configuration();
         try {
-            HashMap<Column, HashMap<Object, LinkedList<Integer>>> map = new HashMap<>();
             ParquetMetadata readFooter = ParquetFileReader.readFooter(conf, new Path(absolutePath), ParquetMetadataConverter.NO_FILTER);
             MessageType schema = readFooter.getFileMetaData().getSchema();
             Table table = Database.getInstance().getTables().get("test");
+            MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(schema);
+            GroupRecordConverter groupRecordConverter = new GroupRecordConverter(schema);
             try (ParquetFileReader r = new ParquetFileReader(conf, new Path(absolutePath), readFooter)) {
                 PageReadStore pages = null;
-                int count = 0;
+
+                // Parsing parquet file
                 while (null != (pages = r.readNextRowGroup())) {
-                    long rows = pages.getRowCount();
-                    MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(schema);
-                    RecordReader<Group> recordReader = columnIO.getRecordReader(pages, new GroupRecordConverter(schema));
-                    for (long i = 0; i < rows; i++) {
+                    // Number of rows in the current group
+                    int nbRows = (int) pages.getRowCount();
+
+                    // HashMap to keep values of this bloc
+                    HashMap<Column, Object[]> map = new HashMap<>();
+                    for (Column c : table.getColumns()) {
+                        if (c.stored())
+                            map.put(c, new Object[nbRows]);
+                    }
+
+                    // Parsing the group
+                    RecordReader<Group> recordReader = columnIO.getRecordReader(pages, groupRecordConverter);
+                    for (int i = 0; i < nbRows; i++) {
                         Group g = recordReader.read();
-                        addGroup(map, g, count++);
+                        addGroup(map, g, i);
                         table.rowsCounter++;
                     }
-                }
-                for (Column c : table.getColumns()) {
-                    HashMap<Object, LinkedList<Integer>> rows = map.get(c);
-                    if (rows == null)
-                        continue;
-                    for (Object val : rows.keySet()) {
-                        c.addRows(val, rows.get(val));
-                    }
-                    c.initValues();
-                }
+                    System.gc();
 
+                    // Adding the bloc in the database
+                    for (Column c : table.getColumns()) {
+                        Object[] rows = map.get(c);
+                        if (rows == null)
+                            continue;
+                        c.addRows(rows);
+                        System.gc();
+                    }
+                }
             } catch (IOException e) {
                 System.err.println("Error reading parquet file.");
                 e.printStackTrace();
@@ -75,31 +86,22 @@ public class LocalInsertionHandler implements InsertionHandler {
         }
     }
 
-    private static <T> void addGroup(HashMap<Column, HashMap<Object, LinkedList<Integer>>> map, Group g, int index) {
+    private static void addGroup(HashMap<Column, Object[]> map, Group g, int index) {
         for (Column c : Database.getInstance().getTables().get("test").getColumns()) {
-            if (!c.stored())
+            Object[] values = map.get(c);
+            if (values == null)
                 continue;
             try {
-                T val;
+                Object val;
                 if (g.getFieldRepetitionCount(c.getName()) != 0)
-                    val = (T) c.getType().cast(c.getLambda().call(g, c.getName(), 0));
+                    val = c.getLambda().call(g, c.getName(), 0);
                 else
                     val = null;
-                HashMap<Object, LinkedList<Integer>> column = map.computeIfAbsent(c, k -> new HashMap<>());
-                List<Integer> list = column.computeIfAbsent(val, k -> new LinkedList<>());
-                list.add(index);
+                values[index] = val;
             } catch (Exception e) {
-                T val = null;
-                HashMap<Object, LinkedList<Integer>> column = map.computeIfAbsent(c, k -> new HashMap<>());
-                List<Integer> list = column.computeIfAbsent(val, k -> new LinkedList<>());
-                list.add(index);
+                values[index] = null;
             }
         }
-    }
-
-    private List<ColumnDescriptor> getTableColumns(String absolutePath) throws IOException {
-        ParquetMetadata readFooter = ParquetFileReader.readFooter(new Configuration(), new Path(absolutePath), ParquetMetadataConverter.NO_FILTER);
-        return readFooter == null ? null : readFooter.getFileMetaData().getSchema().getColumns();
     }
 
 }

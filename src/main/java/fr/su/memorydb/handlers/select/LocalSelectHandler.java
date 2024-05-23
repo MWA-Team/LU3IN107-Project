@@ -61,10 +61,11 @@ public class LocalSelectHandler implements SelectHandler {
             }
         }
 
-        HashMap<Column, Object[]> columnsValues = new HashMap<>();
-        for (Column column : toShow) {
-            columnsValues.put(column, column.getValues());
-        }
+
+        int start = indexes[0];
+        int end = indexes[indexes.length - 1];
+        HashMap<Column, Object[]> values = new HashMap<>();
+
         // Building response
         for (Integer index : indexes) {
             boolean pass = false;
@@ -82,7 +83,9 @@ public class LocalSelectHandler implements SelectHandler {
 
             HashMap<String, Object> row = new HashMap<>();
             for (Column column : toShow) {
-                row.put(column.getName(), columnsValues.get(column)[index]);
+                if (values.get(column) == null)
+                    values.put(column, column.getValues(start, end));
+                row.put(column.getName(), values.get(column)[index - start]);
             }
             selectResponse.add(index, row);
         }
