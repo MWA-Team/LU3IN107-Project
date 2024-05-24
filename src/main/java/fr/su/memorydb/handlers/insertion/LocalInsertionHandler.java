@@ -7,7 +7,6 @@ import fr.su.memorydb.utils.exceptions.WrongTableFormatException;
 import jakarta.inject.Singleton;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.parquet.column.ColumnDescriptor;
 import org.apache.parquet.column.page.PageReadStore;
 import org.apache.parquet.example.data.Group;
 import org.apache.parquet.example.data.simple.convert.GroupRecordConverter;
@@ -22,8 +21,6 @@ import org.apache.parquet.schema.MessageType;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-
-import org.xerial.snappy.Snappy;
 
 @Singleton
 public class LocalInsertionHandler implements InsertionHandler {
@@ -62,45 +59,63 @@ public class LocalInsertionHandler implements InsertionHandler {
                     RecordReader<Group> recordReader = columnIO.getRecordReader(pages, groupRecordConverter);
                     for (int i = 0; i < nbRows; i++) {
                         Group g = recordReader.read();
-                        addGroup(map, g, i);
+                        for (Column c : Database.getInstance().getTables().get("test").getColumns()) {
+                            Object[] values = map.get(c);
+                            if (values == null)
+                                continue;
+                            try {
+                                Object val;
+                                if (g.getFieldRepetitionCount(c.getName()) != 0)
+                                    val = c.getLambda().call(g, c.getName(), 0);
+                                else
+                                    val = null;
+                                values[i] = val;
+                            } catch (Exception e) {
+                                values[i] = null;
+                            }
+                        }
                         table.rowsCounter++;
                     }
-                    System.gc();
 
                     // Adding the bloc in the database
+                    List<Thread> threads = new ArrayList<>();
                     for (Column c : table.getColumns()) {
-                        Object[] rows = map.get(c);
-                        if (rows == null)
+                        if (!c.stored())
                             continue;
-                        c.addRows(rows);
-                        System.gc();
+
+                        if (threads.size() == 2) {
+                            for (Thread t : threads) {
+                                t.join();
+                            }
+                            threads.clear();
+                        }
+
+                        Thread thread = new Thread(() -> {
+                            Object[] rows = map.get(c);
+                            if (rows == null)
+                                return;
+                            try {
+                                c.addRows(rows);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+                        threads.add(thread);
+                        thread.start();
+                    }
+                    for (Thread thread : threads) {
+                        thread.join();
                     }
                 }
             } catch (IOException e) {
                 System.err.println("Error reading parquet file.");
                 e.printStackTrace();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
         } catch (IOException e) {
             System.err.println("Error creating parquet file reader.");
             e.printStackTrace();
-        }
-    }
-
-    private static void addGroup(HashMap<Column, Object[]> map, Group g, int index) {
-        for (Column c : Database.getInstance().getTables().get("test").getColumns()) {
-            Object[] values = map.get(c);
-            if (values == null)
-                continue;
-            try {
-                Object val;
-                if (g.getFieldRepetitionCount(c.getName()) != 0)
-                    val = c.getLambda().call(g, c.getName(), 0);
-                else
-                    val = null;
-                values[index] = val;
-            } catch (Exception e) {
-                values[index] = null;
-            }
         }
     }
 

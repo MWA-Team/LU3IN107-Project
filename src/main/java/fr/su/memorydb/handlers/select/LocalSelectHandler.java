@@ -52,44 +52,57 @@ public class LocalSelectHandler implements SelectHandler {
             return new SelectResponse();
 
         int[] indexes = null;
-        if (!evaluatedIndexes.isEmpty())
-            indexes = evaluatedIndexes.pop();
-        else {
-            for (Column column : toShow) {
-                indexes = column.getAllIndexes();
-                break;
+        if (!evaluatedIndexes.isEmpty()) {
+            int min = -1;
+            int index = 0;
+            for (int i = 0; i < evaluatedIndexes.size(); i++) {
+                int len = evaluatedIndexes.get(i).length;
+                if (min > len || min == -1) {
+                    min = len;
+                    index = i;
+                }
             }
+            indexes = evaluatedIndexes.get(index);
         }
-
 
         int start = indexes[0];
         int end = indexes[indexes.length - 1];
         HashMap<Column, Object[]> values = new HashMap<>();
 
         // Building response
-        for (Integer index : indexes) {
-            boolean pass = false;
-
-            for (int[] indexSet : evaluatedIndexes) {
-                int found = Arrays.binarySearch(indexSet, index);
-                if (found < 0) {
-                    pass = true;
-                    break;
-                }
+        if (indexes == null) {
+            for (int index = 0; index < Database.getInstance().getTables().get(selectBody.getTable()).rowsCounter; index++) {
+                filterIndexes(toShow, evaluatedIndexes, selectResponse, start, end, values, index);
             }
-
-            if (!evaluatedIndexes.isEmpty() && pass)
-                continue;
-
-            HashMap<String, Object> row = new HashMap<>();
-            for (Column column : toShow) {
-                if (values.get(column) == null)
-                    values.put(column, column.getValues(start, end));
-                row.put(column.getName(), values.get(column)[index - start]);
+        } else {
+            for (Integer index : indexes) {
+                filterIndexes(toShow, evaluatedIndexes, selectResponse, start, end, values, index);
             }
-            selectResponse.add(index, row);
         }
         return selectResponse;
+    }
+
+    private void filterIndexes(HashSet<Column> toShow, LinkedList<int[]> evaluatedIndexes, SelectResponse selectResponse, int start, int end, HashMap<Column, Object[]> values, int index) throws IOException {
+        boolean pass = false;
+
+        for (int[] indexSet : evaluatedIndexes) {
+            int found = Arrays.binarySearch(indexSet, index);
+            if (found < 0) {
+                pass = true;
+                break;
+            }
+        }
+
+        if (!evaluatedIndexes.isEmpty() && pass)
+            return;
+
+        HashMap<String, Object> row = new HashMap<>();
+        for (Column column : toShow) {
+            if (values.get(column) == null)
+                values.put(column, column.getValues(start, end));
+            row.put(column.getName(), values.get(column)[index - start]);
+        }
+        selectResponse.add(index, row);
     }
 
 }
