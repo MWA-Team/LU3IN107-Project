@@ -1,21 +1,23 @@
 package fr.su.memorydb.database;
 
-import com.aayushatharva.brotli4j.encoder.Encoder;
+import fr.su.memorydb.utils.compress.Compressor;
+import fr.su.memorydb.utils.compress.NoOpCompressor;
+import fr.su.memorydb.utils.compress.SnappyCompressor;
 import fr.su.memorydb.utils.lambda.LambdaCompressValues;
 import fr.su.memorydb.utils.lambda.LambdaInsertion;
 import fr.su.memorydb.utils.lambda.LambdaTypeConverter;
 import fr.su.memorydb.utils.lambda.LambdaUncompressValues;
 import fr.su.memorydb.utils.streams.inputstreams.*;
 import fr.su.memorydb.utils.streams.outputstreams.*;
-import org.apache.avro.generic.GenericData;
 import org.apache.parquet.example.data.Group;
 import org.apache.parquet.example.data.GroupValueSource;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.xerial.snappy.Snappy;
 
 import java.io.*;
 import java.util.*;
 
-public class Column<T> {
+public class Column<T>{
 
     private final Table table;
     private final String name;
@@ -29,6 +31,11 @@ public class Column<T> {
     private LambdaCompressValues lambdaCompressValues;
     private LambdaUncompressValues lambdaUncompressValues;
 
+    private final Compressor snappyCompressor;
+
+    @ConfigProperty(name = "fr.su.servers.enable.compression")
+    boolean enableCompression;
+
     public Column() {
         name = "Injected";
         stored = true;
@@ -36,6 +43,7 @@ public class Column<T> {
         converter = (String o) -> null;
         table = null;
         values = new ArrayList<>();
+        snappyCompressor = new NoOpCompressor();
     }
 
     public Column(Table table, String name, boolean stored, Class<T> type) {
@@ -45,6 +53,7 @@ public class Column<T> {
         this.rows = new ArrayList<>();
         this.type = type;
         this.values = new ArrayList<>();
+        this.snappyCompressor = enableCompression ? new SnappyCompressor() : new NoOpCompressor();
 
         // Type management
         if (type.equals(Boolean.class)) {
@@ -58,10 +67,10 @@ public class Column<T> {
                 out.finish();
                 byte[] bytes = out.toByteArray();
                 out.close();
-                return Snappy.compress(bytes);
+                return snappyCompressor.compress(bytes);
             };
             lambdaUncompressValues = (byte[] array) -> {
-                byte[] tmp = Snappy.uncompress(array);
+                byte[] tmp = snappyCompressor.uncompress(array);
                 BooleanInputStream in = new BooleanInputStream(tmp);
                 LinkedList<Boolean> uncompressedList = new LinkedList<>();
                 int i = 0;
@@ -86,10 +95,10 @@ public class Column<T> {
                 out.finish();
                 byte[] bytes = out.toByteArray();
                 out.close();
-                return Snappy.compress(bytes);
+                return snappyCompressor.compress(bytes);
             };
             lambdaUncompressValues = (byte[] array) -> {
-                byte[] tmp = Snappy.uncompress(array);
+                byte[] tmp = snappyCompressor.uncompress(array);
                 IntegerInputStream in = new IntegerInputStream(tmp);
                 LinkedList<Integer> uncompressedList = new LinkedList<>();
                 int i = 0;
@@ -114,10 +123,10 @@ public class Column<T> {
                 out.finish();
                 byte[] bytes = out.toByteArray();
                 out.close();
-                return Snappy.compress(bytes);
+                return snappyCompressor.compress(bytes);
             };
             lambdaUncompressValues = (byte[] array) -> {
-                byte[] tmp = Snappy.uncompress(array);
+                byte[] tmp = snappyCompressor.uncompress(array);
                 LongInputStream in = new LongInputStream(tmp);
                 LinkedList<Long> uncompressedList = new LinkedList<>();
                 int i = 0;
@@ -142,10 +151,10 @@ public class Column<T> {
                 out.finish();
                 byte[] bytes = out.toByteArray();
                 out.close();
-                return Snappy.compress(bytes);
+                return snappyCompressor.compress(bytes);
             };
             lambdaUncompressValues = (byte[] array) -> {
-                byte[] tmp = Snappy.uncompress(array);
+                byte[] tmp = snappyCompressor.uncompress(array);
                 FloatInputStream in = new FloatInputStream(tmp);
                 LinkedList<Float> uncompressedList = new LinkedList<>();
                 int i = 0;
@@ -170,10 +179,10 @@ public class Column<T> {
                out.finish();
                byte[] bytes = out.toByteArray();
                out.close();
-               return Snappy.compress(bytes);
+               return snappyCompressor.compress(bytes);
             };
             lambdaUncompressValues = (byte[] array) -> {
-                byte[] tmp = Snappy.uncompress(array);
+                byte[] tmp = snappyCompressor.uncompress(array);
                 DoubleInputStream in = new DoubleInputStream(tmp);
                 LinkedList<Double> uncompressedList = new LinkedList<>();
                 int i = 0;
@@ -201,10 +210,10 @@ public class Column<T> {
                 out.finish();
                 byte[] bytes = out.toByteArray();
                 out.close();
-                return Snappy.compress(bytes);
+                return snappyCompressor.compress(bytes);
             };
             lambdaUncompressValues = (byte[] array) -> {
-                byte[] tmp = Snappy.uncompress(array);
+                byte[] tmp = snappyCompressor.uncompress(array);
                 StringInputStream in = new StringInputStream(tmp);
                 LinkedList<Object> uncompressedList = new LinkedList<>();
                 int i = 0;
@@ -235,7 +244,7 @@ public class Column<T> {
                 continue;
 
             // Decompressing indexes
-            byte[] tmp = Snappy.uncompress(indexes);
+            byte[] tmp = snappyCompressor.uncompress(indexes);
             IntegerInputStream in = new IntegerInputStream(tmp);
             while (true) {
                 try {
@@ -286,7 +295,7 @@ public class Column<T> {
             out.finish();
             byte[] bytes = out.toByteArray();
             out.close();
-            byte[] compressedIndexes = Snappy.compress(bytes);
+            byte[] compressedIndexes = snappyCompressor.compress(bytes);
 
             // Adding values
             newBloc.put(entry.getKey(), compressedIndexes);
