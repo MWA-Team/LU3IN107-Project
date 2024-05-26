@@ -21,7 +21,7 @@ public class Column<T>{
     private final Table table;
     private final String name;
     private final boolean stored;
-    private final List<HashMap<T, Object>> rows;
+    private List<HashMap<T, Object>> rows;
     private final List<Object> values;
     private final Class<T> type;
     private LambdaInsertion lambda;
@@ -389,6 +389,15 @@ public class Column<T>{
             first = false;
         }
         return (T[]) retval.toArray();
+    }
+
+    public void disableIndexing() {
+        enableIndexing = false;
+        rows = null;
+    }
+
+    public boolean indexingEnabled() {
+        return enableIndexing;
     }
 
 }

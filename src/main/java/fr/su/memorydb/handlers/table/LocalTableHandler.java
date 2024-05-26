@@ -21,13 +21,13 @@ public class LocalTableHandler implements TableHandler {
     @ConfigProperty(name = "fr.su.servers.ips")
     List<String> ips;
 
-    @ConfigProperty(name = "fr.su.servers.enable.values-compression")
+    @ConfigProperty(name = "fr.su.enable.values-compression")
     boolean enableValuesCompression;
 
-    @ConfigProperty(name = "fr.su.servers.enable.indexes-compression")
+    @ConfigProperty(name = "fr.su.enable.indexes-compression")
     boolean enableIndexesCompression;
 
-    @ConfigProperty(name = "fr.su.servers.enable.indexing")
+    @ConfigProperty(name = "fr.su.enable.indexing")
     boolean enableIndexing;
 
     @Override

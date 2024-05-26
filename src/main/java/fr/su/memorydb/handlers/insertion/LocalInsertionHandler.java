@@ -17,6 +17,7 @@ import org.apache.parquet.io.ColumnIOFactory;
 import org.apache.parquet.io.MessageColumnIO;
 import org.apache.parquet.io.RecordReader;
 import org.apache.parquet.schema.MessageType;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,6 +27,9 @@ import java.util.concurrent.*;
 
 @Singleton
 public class LocalInsertionHandler implements InsertionHandler {
+
+    @ConfigProperty(name = "fr.su.indexing.threshold")
+    float indexingThreshold;
 
     @Override
     public int insert(File file) throws WrongTableFormatException {
@@ -55,6 +59,7 @@ public class LocalInsertionHandler implements InsertionHandler {
 
                     // Number of rows in the current group
                     int nbRows = (int) pages.getRowCount();
+                    int nbUniqueValues = 0;
 
                     // HashMap to keep values of this bloc
                     HashMap<Column, Object[]> map = new HashMap<>();
@@ -87,6 +92,8 @@ public class LocalInsertionHandler implements InsertionHandler {
                             if (rows == null)
                                 return;
 
+                            HashSet<Object> values = c.indexingEnabled() ? new HashSet<>() : null;
+
                             for (int i = 0; i < nbRows; i++) {
                                 Group g = groups.get(i);
 
@@ -97,10 +104,15 @@ public class LocalInsertionHandler implements InsertionHandler {
                                     else
                                         val = null;
                                     rows[i] = val;
+                                    if (values != null)
+                                        values.add(val);
                                 } catch (Exception e) {
                                     rows[i] = null;
                                 }
                             }
+
+                            if (values.size() / ((float)table.rowsCounter) >= indexingThreshold)
+                                c.disableIndexing();
 
                             try {
                                 c.addRows(rows);
