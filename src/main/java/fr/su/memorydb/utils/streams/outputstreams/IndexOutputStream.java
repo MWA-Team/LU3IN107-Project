@@ -15,9 +15,8 @@ public class IndexOutputStream extends OutputStream {
 
     public void writeIndex(Integer value) throws IOException {
         if (value == null)
-            byteArrayOutputStream.write(0);
+            throw new IllegalArgumentException("Index value cannot be null");
         else {
-            byteArrayOutputStream.write(1);
             byte[] intBytes = ByteBuffer.allocate(4).putInt(value).array();
             byteArrayOutputStream.write(intBytes);
         }

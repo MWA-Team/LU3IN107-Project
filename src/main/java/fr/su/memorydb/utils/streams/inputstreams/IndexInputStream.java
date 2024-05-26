@@ -14,13 +14,11 @@ public class IndexInputStream extends InputStream {
     }
 
     public Integer readInteger() throws IOException {
-        int present = byteArrayInputStream.read();
-        if (present == -1)
-            throw new IOException("End of stream reached");
-        if (present == 0)
-            return null;
         byte[] tmp = new byte[4];
-        if (byteArrayInputStream.read(tmp) != 4) {
+        int read = byteArrayInputStream.read(tmp);
+        if (read == -1)
+            throw new IOException("End of stream reached");
+        if (read != 4) {
             throw new IOException("Failed to read 4 bytes for an index");
         }
         return ByteBuffer.wrap(tmp).getInt();
