@@ -111,7 +111,7 @@ public class LocalInsertionHandler implements InsertionHandler {
                                 }
                             }
 
-                            if (values.size() / ((float)table.rowsCounter) >= indexingThreshold)
+                            if (values != null && values.size() / ((float)table.rowsCounter) >= indexingThreshold)
                                 c.disableIndexing();
 
                             try {
