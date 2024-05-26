@@ -20,7 +20,9 @@ import org.apache.parquet.schema.MessageType;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.Array;
 import java.util.*;
+import java.util.concurrent.*;
 
 @Singleton
 public class LocalInsertionHandler implements InsertionHandler {
@@ -34,17 +36,23 @@ public class LocalInsertionHandler implements InsertionHandler {
 
     private void handlerFile(String absolutePath) {
         Configuration conf = new Configuration();
+        int nbMaxThreads = 8;
+
         try {
             ParquetMetadata readFooter = ParquetFileReader.readFooter(conf, new Path(absolutePath), ParquetMetadataConverter.NO_FILTER);
             MessageType schema = readFooter.getFileMetaData().getSchema();
             Table table = Database.getInstance().getTables().get("test");
             MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(schema);
             GroupRecordConverter groupRecordConverter = new GroupRecordConverter(schema);
+            List<Thread> threads = new ArrayList<>();
+
             try (ParquetFileReader r = new ParquetFileReader(conf, new Path(absolutePath), readFooter)) {
                 PageReadStore pages = null;
 
                 // Parsing parquet file
                 while (null != (pages = r.readNextRowGroup())) {
+                    RecordReader<Group> recordReader = columnIO.getRecordReader(pages, groupRecordConverter);
+
                     // Number of rows in the current group
                     int nbRows = (int) pages.getRowCount();
 
@@ -56,36 +64,20 @@ public class LocalInsertionHandler implements InsertionHandler {
                     }
 
                     // Parsing the group
-                    RecordReader<Group> recordReader = columnIO.getRecordReader(pages, groupRecordConverter);
+                    List<Group> groups = new ArrayList<>(nbRows);
                     for (int i = 0; i < nbRows; i++) {
-                        Group g = recordReader.read();
-                        for (Column c : Database.getInstance().getTables().get("test").getColumns()) {
-                            Object[] values = map.get(c);
-                            if (values == null)
-                                continue;
-                            try {
-                                Object val;
-                                if (g.getFieldRepetitionCount(c.getName()) != 0)
-                                    val = c.getLambda().call(g, c.getName(), 0);
-                                else
-                                    val = null;
-                                values[i] = val;
-                            } catch (Exception e) {
-                                values[i] = null;
-                            }
-                        }
-                        table.rowsCounter++;
+                        groups.add(recordReader.read());
                     }
+                    table.rowsCounter += nbRows;
 
                     // Adding the bloc in the database
-                    List<Thread> threads = new ArrayList<>();
                     for (Column c : table.getColumns()) {
                         if (!c.stored())
                             continue;
 
-                        if (threads.size() == 2) {
-                            for (Thread t : threads) {
-                                t.join();
+                        if (threads.size() == nbMaxThreads) {
+                            for (Thread thread : threads) {
+                                thread.join();
                             }
                             threads.clear();
                         }
@@ -94,6 +86,22 @@ public class LocalInsertionHandler implements InsertionHandler {
                             Object[] rows = map.get(c);
                             if (rows == null)
                                 return;
+
+                            for (int i = 0; i < nbRows; i++) {
+                                Group g = groups.get(i);
+
+                                try {
+                                    Object val;
+                                    if (g.getFieldRepetitionCount(c.getName()) != 0)
+                                        val = c.getLambda().call(g, c.getName(), 0);
+                                    else
+                                        val = null;
+                                    rows[i] = val;
+                                } catch (Exception e) {
+                                    rows[i] = null;
+                                }
+                            }
+
                             try {
                                 c.addRows(rows);
                             } catch (IOException e) {
@@ -103,6 +111,7 @@ public class LocalInsertionHandler implements InsertionHandler {
                         threads.add(thread);
                         thread.start();
                     }
+
                     for (Thread thread : threads) {
                         thread.join();
                     }

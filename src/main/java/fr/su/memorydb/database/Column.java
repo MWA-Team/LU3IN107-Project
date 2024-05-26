@@ -20,7 +20,7 @@ public class Column<T> {
     private final Table table;
     private final String name;
     private final boolean stored;
-    private final List<HashMap<T, byte[]>> rows;
+    private final HashMap<T, LinkedList<Integer>> rows;
     private List<byte[]> values;
 
     private Class<T> type;
@@ -32,7 +32,7 @@ public class Column<T> {
     public Column() {
         name = "Injected";
         stored = true;
-        rows = new ArrayList<>();
+        rows = new HashMap<>();
         converter = (String o) -> null;
         table = null;
         values = new ArrayList<>();
@@ -42,7 +42,7 @@ public class Column<T> {
         this.table = table;
         this.name = name;
         this.stored = stored;
-        this.rows = new ArrayList<>();
+        this.rows = new HashMap<>();
         this.type = type;
         this.values = new ArrayList<>();
 
@@ -226,74 +226,14 @@ public class Column<T> {
     }
 
     public int[] get(T val) throws IOException {
-        LinkedList<Integer> list = new LinkedList<>();
-
-        for (int i = 0; i < rows.size(); i++) {
-            HashMap<T, byte[]> bloc = rows.get(i);
-            byte[] indexes = bloc.get(val);
-            if (indexes == null)
-                continue;
-
-            // Decompressing indexes
-            byte[] tmp = Snappy.uncompress(indexes);
-            IntegerInputStream in = new IntegerInputStream(tmp);
-            while (true) {
-                try {
-                    int index = in.readInteger();
-                    list.add(index);
-                } catch (IOException e) {
-                    break;
-                }
-            }
-            in.close();
-        }
-
-        return list.stream().mapToInt(Integer::intValue).toArray();
+        return rows.get(val).stream().mapToInt(Integer::intValue).toArray();
     }
 
     public void addRows(Object[] newRows) throws IOException {
-        HashMap<T, LinkedList<Integer>> rows = new HashMap<>();
-
+        // Adding new indexes
         for (int i = 0; i < newRows.length; i++) {
-            LinkedList<Integer> indexes;
-            boolean created = false;
-
-            // If there was no index for this value, we create a list for that
-            if (rows.containsKey(type.cast(newRows[i])))
-                indexes = rows.get(type.cast(newRows[i]));
-            else {
-                indexes = new LinkedList<>();
-                rows.put(type.cast(newRows[i]), indexes);
-                created = true;
-            }
-
-            // Linking current index and this value
-            indexes.add(table.rowsCounter - newRows.length + i);
+            rows.computeIfAbsent(type.cast(newRows[i]), t -> new LinkedList<>()).add(table.rowsCounter - newRows.length + i);
         }
-
-        // Adding all changes to the database
-        List<Thread> threads = new ArrayList<>();
-        HashMap<T, byte[]> newBloc = new HashMap<>();
-        for (Map.Entry<T, LinkedList<Integer>> entry : rows.entrySet()) {
-            int[] array = entry.getValue().stream().mapToInt(Integer::intValue).toArray();
-            Arrays.parallelSort(array);
-
-            // Compressing indexes
-            IntegerOutputStream out = new IntegerOutputStream();
-            for (int i = 0; i < array.length; i++) {
-                out.writeInteger(array[i]);
-            }
-            out.finish();
-            byte[] bytes = out.toByteArray();
-            out.close();
-            byte[] compressedIndexes = Snappy.compress(bytes);
-
-            // Adding values
-            newBloc.put(entry.getKey(), compressedIndexes);
-        }
-
-        // Adding changes
-        this.rows.add(newBloc);
 
         // Adding compressed values to the values
         values.add(lambdaCompressValues.call(newRows));
