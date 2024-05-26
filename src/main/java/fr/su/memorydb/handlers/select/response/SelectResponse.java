@@ -36,7 +36,6 @@ public class SelectResponse {
                 retval.add(row.getKey(), newRow);
             }
         }
-
         return retval;
     }
 

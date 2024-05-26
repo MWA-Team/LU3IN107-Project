@@ -2,11 +2,11 @@ package fr.su.memorydb.handlers.insertion;
 
 import fr.su.memorydb.database.Column;
 import fr.su.memorydb.database.Database;
+import fr.su.memorydb.database.Table;
 import fr.su.memorydb.utils.exceptions.WrongTableFormatException;
 import jakarta.inject.Singleton;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.parquet.column.ColumnDescriptor;
 import org.apache.parquet.column.page.PageReadStore;
 import org.apache.parquet.example.data.Group;
 import org.apache.parquet.example.data.simple.convert.GroupRecordConverter;
@@ -17,13 +17,19 @@ import org.apache.parquet.io.ColumnIOFactory;
 import org.apache.parquet.io.MessageColumnIO;
 import org.apache.parquet.io.RecordReader;
 import org.apache.parquet.schema.MessageType;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
+import java.sql.Array;
+import java.util.*;
+import java.util.concurrent.*;
 
 @Singleton
 public class LocalInsertionHandler implements InsertionHandler {
+
+    @ConfigProperty(name = "fr.su.indexing.threshold")
+    float indexingThreshold;
 
     @Override
     public int insert(File file) throws WrongTableFormatException {
@@ -34,48 +40,104 @@ public class LocalInsertionHandler implements InsertionHandler {
 
     private void handlerFile(String absolutePath) {
         Configuration conf = new Configuration();
+        int nbMaxThreads = 8;
 
         try {
             ParquetMetadata readFooter = ParquetFileReader.readFooter(conf, new Path(absolutePath), ParquetMetadataConverter.NO_FILTER);
             MessageType schema = readFooter.getFileMetaData().getSchema();
+            Table table = Database.getInstance().getTables().get("test");
+            MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(schema);
+            GroupRecordConverter groupRecordConverter = new GroupRecordConverter(schema);
+            List<Thread> threads = new ArrayList<>();
 
             try (ParquetFileReader r = new ParquetFileReader(conf, new Path(absolutePath), readFooter)) {
                 PageReadStore pages = null;
-                int count = 0;
+
+                // Parsing parquet file
                 while (null != (pages = r.readNextRowGroup())) {
-                    long rows = pages.getRowCount();
-                    MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(schema);
-                    RecordReader<Group> recordReader = columnIO.getRecordReader(pages, new GroupRecordConverter(schema));
-                    for (long i = 0; i < rows; i++) {
-                        Group g = recordReader.read();
-                        addGroup(g, count++);
+                    RecordReader<Group> recordReader = columnIO.getRecordReader(pages, groupRecordConverter);
+
+                    // Number of rows in the current group
+                    int nbRows = (int) pages.getRowCount();
+                    int nbUniqueValues = 0;
+
+                    // HashMap to keep values of this bloc
+                    HashMap<Column, Object[]> map = new HashMap<>();
+                    for (Column c : table.getColumns()) {
+                        if (c.stored())
+                            map.put(c, new Object[nbRows]);
+                    }
+
+                    // Parsing the group
+                    List<Group> groups = new ArrayList<>(nbRows);
+                    for (int i = 0; i < nbRows; i++) {
+                        groups.add(recordReader.read());
+                    }
+                    table.rowsCounter += nbRows;
+
+                    // Adding the bloc in the database
+                    for (Column c : table.getColumns()) {
+                        if (!c.stored())
+                            continue;
+
+                        if (threads.size() == nbMaxThreads) {
+                            for (Thread thread : threads) {
+                                thread.join();
+                            }
+                            threads.clear();
+                        }
+
+                        Thread thread = new Thread(() -> {
+                            Object[] rows = map.get(c);
+                            if (rows == null)
+                                return;
+
+                            HashSet<Object> values = c.indexingEnabled() ? new HashSet<>() : null;
+
+                            for (int i = 0; i < nbRows; i++) {
+                                Group g = groups.get(i);
+
+                                try {
+                                    Object val;
+                                    if (g.getFieldRepetitionCount(c.getName()) != 0)
+                                        val = c.getLambda().call(g, c.getName(), 0);
+                                    else
+                                        val = null;
+                                    rows[i] = val;
+                                    if (values != null)
+                                        values.add(val);
+                                } catch (Exception e) {
+                                    rows[i] = null;
+                                }
+                            }
+
+                            if (values != null && values.size() / ((float)table.rowsCounter) >= indexingThreshold)
+                                c.disableIndexing();
+
+                            try {
+                                c.addRows(rows);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+                        threads.add(thread);
+                        thread.start();
+                    }
+
+                    for (Thread thread : threads) {
+                        thread.join();
                     }
                 }
+            } catch (IOException e) {
+                System.err.println("Error reading parquet file.");
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
         } catch (IOException e) {
-            System.err.println("Error reading parquet file.");
+            System.err.println("Error creating parquet file reader.");
             e.printStackTrace();
         }
-    }
-
-    private static void addGroup(Group g, int index) {
-        for (Column c : Database.getInstance().getTables().get("test").getColumns()) {
-            if (!c.stored())
-                continue;
-            try {
-                if (g.getFieldRepetitionCount(c.getName()) != 0)
-                    c.addRowGroup(g, c.getName(), index);
-                else
-                    c.addRowValue(null, index);
-            } catch (Exception e) {
-                c.addRowValue(null, index);
-            }
-        }
-    }
-
-    private List<ColumnDescriptor> getTableColumns(String absolutePath) throws IOException {
-        ParquetMetadata readFooter = ParquetFileReader.readFooter(new Configuration(), new Path(absolutePath), ParquetMetadataConverter.NO_FILTER);
-        return readFooter == null ? null : readFooter.getFileMetaData().getSchema().getColumns();
     }
 
 }

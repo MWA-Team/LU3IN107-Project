@@ -9,8 +9,11 @@ public class Table {
     private HashMap<String, Column> columnsNames;
     private List<Column> columns;
 
+    public int rowsCounter;
+
     public Table(String name) {
         this.name = name;
+        rowsCounter = 0;
         this.columnsNames = new HashMap<>();
         columns = new ArrayList<>();
     }
@@ -32,6 +35,14 @@ public class Table {
     public void addColumn(Column column) {
         this.columns.add(column);
         this.columnsNames.put(column.getName(), column);
+    }
+
+    public void setRowsCounter(int rowsCounter) {
+        this.rowsCounter = rowsCounter;
+    }
+
+    public int getRowsCounter() {
+        return rowsCounter;
     }
 
 }

@@ -1,5 +1,6 @@
 package fr.su.memorydb.controllers;
 
+import fr.su.memorydb.database.Database;
 import fr.su.memorydb.handlers.insertion.LocalInsertionHandler;
 import fr.su.memorydb.handlers.insertion.RemoteInsertionHandler;
 import fr.su.memorydb.utils.exceptions.WrongTableFormatException;
@@ -28,7 +29,7 @@ public class TableInsertion {
             localInsertionHandler.insert(file);
             remoteInsertionHandler.insert(file);
             if (responseCode == 200) {
-                return Response.status(200).entity("Insertion successful !").type(MediaType.TEXT_PLAIN).build();
+                return Response.status(200).entity("Insertion successful !\nIt now has " + Database.getInstance().getTables().get("test").rowsCounter + " rows !").type(MediaType.TEXT_PLAIN).build();
             } else {
                 return Response.status(500).entity("Insertion failed !").type(MediaType.TEXT_PLAIN).build();
             }
