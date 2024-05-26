@@ -23,13 +23,12 @@ public class Column<T>{
     private final boolean stored;
     private final List<HashMap<T, Object>> rows;
     private final List<Object> values;
-
     private final Class<T> type;
     private LambdaInsertion lambda;
     private final LambdaTypeConverter<T> converter;
-
     private final Compressor valuesCompressor;
     private final Compressor indexesCompressor;
+    private boolean enableIndexing;
 
     public Column() {
         name = null;
@@ -41,6 +40,7 @@ public class Column<T>{
         type = null;
         valuesCompressor = null;
         indexesCompressor = null;
+        enableIndexing = false;
     }
 
     public Column(Table table, String name, boolean stored, Class<T> type, boolean enableValuesCompression, boolean enableIndexesCompression, boolean enableIndexing) {
@@ -50,6 +50,7 @@ public class Column<T>{
         this.rows = new ArrayList<>();
         this.type = type;
         this.values = new ArrayList<>();
+        this.enableIndexing = enableIndexing;
 
         LambdaCompress lambdaCompressValues = null;
         LambdaUncompress lambdaUncompressValues = null;
@@ -264,6 +265,13 @@ public class Column<T>{
     }
 
     public void addRows(Object[] newRows) throws IOException {
+        // Adding compressed values to the values
+        values.add(valuesCompressor.compress(newRows));
+
+        if (!enableIndexing)
+            return;
+
+        // Creating indexes if needed
         HashMap<T, LinkedList<Integer>> rows = new HashMap<>();
 
         for (int i = 0; i < newRows.length; i++) {
@@ -293,9 +301,6 @@ public class Column<T>{
 
         // Adding changes
         this.rows.add(newBloc);
-
-        // Adding compressed values to the values
-        values.add(valuesCompressor.compress(newRows));
     }
 
     public boolean stored() {
@@ -332,16 +337,29 @@ public class Column<T>{
     public int[] get(T val) throws IOException {
         LinkedList<Integer> list = new LinkedList<>();
 
-        for (int i = 0; i < rows.size(); i++) {
-            HashMap<T, Object> bloc = rows.get(i);
-            Object indexes = bloc.get(val);
-            if (indexes == null)
-                continue;
+        if (enableIndexing) {
+            for (HashMap<T, Object> bloc : rows) {
+                Object indexes = bloc.get(val);
+                if (indexes == null)
+                    continue;
 
-            // Decompressing indexes
-            Object tmp = indexesCompressor.uncompress(indexes);
-            for (int j = 0; j < Array.getLength(tmp); j++) {
-                list.add((Integer) Array.get(tmp, j));
+                // Decompressing indexes
+                Object tmp = indexesCompressor.uncompress(indexes);
+                for (int j = 0; j < Array.getLength(tmp); j++) {
+                    list.add((Integer) Array.get(tmp, j));
+                }
+            }
+        } else {
+            // Might need to improve this part for more efficient search with threads perhaps
+            int index = 0;
+            for (Object bloc : values) {
+                Object tmpArray = valuesCompressor.uncompress(bloc);
+                for (int j = 0; j < Array.getLength(tmpArray); j++) {
+                    Object tmp = Array.get(tmpArray, j);
+                    if ((val == null && tmp == null) || (tmp != null && tmp.equals(val)))
+                        list.add(index);
+                    index++;
+                }
             }
         }
 
