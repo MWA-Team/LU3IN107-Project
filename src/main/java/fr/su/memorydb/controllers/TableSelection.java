@@ -3,6 +3,7 @@ package fr.su.memorydb.controllers;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import fr.su.memorydb.database.Database;
 import fr.su.memorydb.database.Table;
+import fr.su.memorydb.handlers.ForwardingManager;
 import fr.su.memorydb.handlers.select.LocalSelectHandler;
 import fr.su.memorydb.handlers.select.RemoteSelectHandler;
 import fr.su.memorydb.handlers.select.response.SelectResponse;
@@ -12,6 +13,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,6 +27,9 @@ public class TableSelection{
     @Inject
     private RemoteSelectHandler remoteSelectHandler;
 
+    @Inject
+    private ForwardingManager forwardingManager;
+
     @GET
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
@@ -34,6 +39,11 @@ public class TableSelection{
         if (table == null) {
             return Response.status(404).entity("Table '" + selectBody.table + "' not found.").build();
         }
+
+        if(selectBody.requesterIp == null) {
+            selectBody.requesterIp = forwardingManager.getLocalIp();
+        }
+        selectBody.currentIp = forwardingManager.getLocalIp();
 
         SelectResponse localResponse = localSelectHandler.select(selectBody);
         SelectResponse remoteResponse = remoteSelectHandler.select(selectBody);
@@ -64,6 +74,10 @@ public class TableSelection{
 
         @JsonProperty
         private Aggregate aggregate;
+
+        private String requesterIp;
+
+        private String currentIp;
 
         private String groupBy;
 
@@ -100,6 +114,14 @@ public class TableSelection{
         public boolean hasGroupBy() {
 
             return groupBy != null && !groupBy.isEmpty();
+        }
+
+        public String getRequesterIp() {
+            return requesterIp;
+        }
+
+        public String getCurrentIp() {
+            return currentIp;
         }
     }
 

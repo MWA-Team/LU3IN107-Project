@@ -2,12 +2,15 @@ package fr.su.memorydb.handlers.select.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import fr.su.memorydb.controllers.TableSelection;
+import fr.su.memorydb.handlers.ForwardingManager;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 import java.net.InetAddress;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.stream.Collectors;
-
 
 public class SelectResponse {
 
@@ -70,13 +73,10 @@ public class SelectResponse {
 
     public SelectResponse aggregate(TableSelection.SelectBody selectBody) {
 
-        try {
-            if(!InetAddress.getLocalHost().getHostAddress().equals("10.147.17.212")) {
 
-                return this;
-            }
-        } catch (UnknownHostException e) {
-            throw new RuntimeException(e);
+        if(!selectBody.getRequesterIp().equals(selectBody.getCurrentIp())) {
+
+            return this;
         }
 
         if(selectBody.hasGroupBy()) {
