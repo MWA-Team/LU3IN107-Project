@@ -65,8 +65,8 @@ public class LocalSelectHandler implements SelectHandler {
             indexes = evaluatedIndexes.get(index);
         }
 
-        int start = indexes[0];
-        int end = indexes[indexes.length - 1];
+        int start = indexes != null ? indexes[0] : 0;
+        int end = indexes != null ? indexes[indexes.length - 1] : Database.getInstance().getTables().get(selectBody.getTable()).rowsCounter;
         HashMap<Column, Object[]> values = new HashMap<>();
 
         // Building response
