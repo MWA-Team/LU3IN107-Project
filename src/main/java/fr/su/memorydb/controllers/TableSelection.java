@@ -45,7 +45,7 @@ public class TableSelection{
 
         List<SelectResponse> list = new ArrayList<>();
         list.add(remoteResponse);
-        SelectResponse finaleResponse = localResponse != null ? localResponse.merge(list) : remoteResponse != null ? remoteResponse : new SelectResponse();
+        SelectResponse finaleResponse = localResponse != null ? localResponse.merge(list, selectBody) : remoteResponse != null ? remoteResponse : new SelectResponse();
 
         finaleResponse.aggregate(selectBody);
 
@@ -125,6 +125,17 @@ public class TableSelection{
         private List<String> mean;
         private List<String> count;
 
+        public List<String> getSum() {
+            return sum;
+        }
+
+        public List<String> getMean() {
+            return mean;
+        }
+
+        public List<String> getCount() {
+            return count;
+        }
     }
 
     public enum Operand { EQUALS, BIGGER, LOWER, NOT_EQUALS }
