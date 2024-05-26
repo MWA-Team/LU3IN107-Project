@@ -26,7 +26,6 @@ public class TableController {
     public Response table(TableBody tableBody) throws IOException {
         localTableHandler.createTable(tableBody);
         remoteTableHandler.createTable(tableBody);
-        System.gc();
         return Response.status(200).entity(tableBody).type(MediaType.APPLICATION_JSON).build();
     }
 

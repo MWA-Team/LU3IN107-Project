@@ -46,7 +46,6 @@ public class TableSelection{
         List<SelectResponse> list = new ArrayList<>();
         list.add(remoteResponse);
         SelectResponse finaleResponse = localResponse != null ? localResponse.merge(list) : remoteResponse != null ? remoteResponse : new SelectResponse();
-        System.gc();
         return Response.status(statusCode).entity(finaleResponse).type(MediaType.APPLICATION_JSON).build();
     }
 
