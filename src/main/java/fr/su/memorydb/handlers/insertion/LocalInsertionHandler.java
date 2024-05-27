@@ -32,33 +32,32 @@ public class LocalInsertionHandler implements InsertionHandler {
     @ConfigProperty(name = "fr.su.blocs.size")
     int blocsSize;
 
-    int nbMaxThreads = 8;
+    int nbMaxThreads = 6;
 
     @Override
     public int insert(File file) throws WrongTableFormatException {
         String absolutePath = file.getAbsolutePath();
-        handlerFile(absolutePath);
+        handlerFile(new Path(absolutePath));
         return 200;
     }
 
-    private void handlerFile(String absolutePath) {
-        Configuration conf = new Configuration();
-
+    private void handlerFile(Path absolutePath) {
         try {
-            ParquetMetadata readFooter = ParquetFileReader.readFooter(conf, new Path(absolutePath), ParquetMetadataConverter.NO_FILTER);
+            Configuration conf = new Configuration();
+            ParquetMetadata readFooter = ParquetFileReader.readFooter(conf, absolutePath, ParquetMetadataConverter.NO_FILTER);
             MessageType schema = readFooter.getFileMetaData().getSchema();
             Table table = Database.getInstance().getTables().get("test");
             MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(schema);
             GroupRecordConverter groupRecordConverter = new GroupRecordConverter(schema);
 
-            try (ParquetFileReader r = new ParquetFileReader(conf, new Path(absolutePath), readFooter)) {
+            try (ParquetFileReader r = new ParquetFileReader(conf, absolutePath, readFooter)) {
                 PageReadStore pages = null;
 
-                List<Group> groups = new ArrayList<>(blocsSize > 0 ? blocsSize : conf.getInt("ipc.server.max.response.size", 1000000));
+                List<Group> groups = new ArrayList<>(blocsSize > 0 ? blocsSize : conf.getInt("ipc.server.max.response.size", 1048576));
 
                 // HashMap to keep values of this bloc
                 HashMap<Column, Object[]> map = new HashMap<>();
-                initMap(map, table, blocsSize > 0 ? blocsSize : conf.getInt("ipc.server.max.response.size", 1000000));
+                initMap(map, table, blocsSize > 0 ? blocsSize : conf.getInt("ipc.server.max.response.size", 1048576));
 
                 // Parsing parquet file
                 while (null != (pages = r.readNextRowGroup())) {
@@ -70,7 +69,7 @@ public class LocalInsertionHandler implements InsertionHandler {
                     // Parsing the groups
                     for (int i = 0; i < nbRows; i++) {
                         groups.add(recordReader.read());
-                        table.rowsCounter ++;
+                        table.rowsCounter++;
                         // Adding the bloc in the database
                         if (groups.size() == blocsSize) {
                             addBloc(groups, table, map);

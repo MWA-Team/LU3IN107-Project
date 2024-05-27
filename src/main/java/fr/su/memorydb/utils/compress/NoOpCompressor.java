@@ -1,6 +1,5 @@
 package fr.su.memorydb.utils.compress;
 
-import java.io.IOException;
 import java.lang.reflect.Array;
 
 public class NoOpCompressor implements Compressor{

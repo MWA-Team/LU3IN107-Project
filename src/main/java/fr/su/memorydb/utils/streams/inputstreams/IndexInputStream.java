@@ -9,7 +9,7 @@ public class IndexInputStream extends InputStream {
 
     private final ByteArrayInputStream byteArrayInputStream;
 
-    public IndexInputStream(byte[] byteArray) throws IOException {
+    public IndexInputStream(byte[] byteArray) {
         this.byteArrayInputStream = new ByteArrayInputStream(byteArray);
     }
 
