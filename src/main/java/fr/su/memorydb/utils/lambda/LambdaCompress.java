@@ -5,6 +5,6 @@ import java.io.IOException;
 @FunctionalInterface
 public interface LambdaCompress {
 
-    byte[] call(Object values) throws IOException;
+    byte[] call(Object values, int size) throws IOException;
 
 }

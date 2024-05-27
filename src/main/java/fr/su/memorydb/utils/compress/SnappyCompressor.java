@@ -17,8 +17,8 @@ public class SnappyCompressor implements Compressor {
     }
 
     @Override
-    public byte[] compress(Object data) throws IOException {
-        byte[] tmp = lambdaCompressValues.call(data);
+    public byte[] compress(Object data, int size) throws IOException {
+        byte[] tmp = lambdaCompressValues.call(data, size);
         return Snappy.compress(tmp);
     }
 

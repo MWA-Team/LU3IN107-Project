@@ -16,7 +16,7 @@ import java.io.*;
 import java.lang.reflect.Array;
 import java.util.*;
 
-public class Column<T>{
+public class Column<T> {
 
     private final Table table;
     private final String name;
@@ -60,9 +60,9 @@ public class Column<T>{
             lambda = GroupValueSource::getBoolean;
             converter = (String o) -> !Objects.equals(o, "null") ? type.cast(Boolean.parseBoolean(o)) : null;
             if (enableValuesCompression) {
-                lambdaCompressValues = (Object array) -> {
+                lambdaCompressValues = (Object array, int size) -> {
                     BooleanOutputStream out = new BooleanOutputStream();
-                    for (int i = 0; i < Array.getLength(array); i++) {
+                    for (int i = 0; i < size; i++) {
                         out.writeBoolean((Boolean) Array.get(array, i));
                     }
                     out.finish();
@@ -89,9 +89,9 @@ public class Column<T>{
             lambda = GroupValueSource::getInteger;
             converter = (String o) -> !Objects.equals(o, "null") ? type.cast(Integer.parseInt(o)) : null;
             if (enableValuesCompression) {
-                lambdaCompressValues = (Object array) -> {
+                lambdaCompressValues = (Object array, int size) -> {
                     IntegerOutputStream out = new IntegerOutputStream();
-                    for (int i = 0; i < Array.getLength(array); i++) {
+                    for (int i = 0; i < size; i++) {
                         out.writeInteger((Integer) Array.get(array, i));
                     }
                     out.finish();
@@ -117,9 +117,9 @@ public class Column<T>{
             lambda = GroupValueSource::getLong;
             converter = (String o) -> !Objects.equals(o, "null") ? type.cast(Long.parseLong(o)) : null;
             if (enableValuesCompression) {
-                lambdaCompressValues = (Object array) -> {
+                lambdaCompressValues = (Object array, int size) -> {
                     LongOutputStream out = new LongOutputStream();
-                    for (int i = 0; i < Array.getLength(array); i++) {
+                    for (int i = 0; i < size; i++) {
                         out.writeLong((Long) Array.get(array, i));
                     }
                     out.finish();
@@ -145,9 +145,9 @@ public class Column<T>{
             lambda = GroupValueSource::getFloat;
             converter = (String o) -> !Objects.equals(o, "null") ? type.cast(Float.parseFloat(o)) : null;
             if (enableValuesCompression) {
-                lambdaCompressValues = (Object array) -> {
+                lambdaCompressValues = (Object array, int size) -> {
                     FloatOutputStream out = new FloatOutputStream();
-                    for (int i = 0; i < Array.getLength(array); i++) {
+                    for (int i = 0; i < size; i++) {
                         out.writeFloat((Float) Array.get(array, i));
                     }
                     out.finish();
@@ -173,9 +173,9 @@ public class Column<T>{
             lambda = GroupValueSource::getDouble;
             converter = (String o) -> !Objects.equals(o, "null") ? type.cast(Double.parseDouble(o)) : null;
             if (enableValuesCompression) {
-                lambdaCompressValues = (Object array) -> {
+                lambdaCompressValues = (Object array, int size) -> {
                     DoubleOutputStream out = new DoubleOutputStream();
-                    for (int i = 0; i < Array.getLength(array); i++) {
+                    for (int i = 0; i < size; i++) {
                         out.writeDouble((Double) Array.get(array, i));
                     }
                     out.finish();
@@ -204,9 +204,9 @@ public class Column<T>{
             };
             converter = (String o) -> !Objects.equals(o, "null") ? type.cast(o) : null;
             if (enableValuesCompression) {
-                lambdaCompressValues = (Object array) -> {
+                lambdaCompressValues = (Object array, int size) -> {
                     StringOutputStream out = new StringOutputStream();
-                    for (int i = 0; i < Array.getLength(array); i++) {
+                    for (int i = 0; i < size; i++) {
                         out.writeString((String) Array.get(array, i));
                     }
                     out.finish();
@@ -233,9 +233,9 @@ public class Column<T>{
         this.valuesCompressor = enableValuesCompression ? new SnappyCompressor(lambdaCompressValues, lambdaUncompressValues) : new NoOpCompressor();
 
         if (enableIndexesCompression && enableIndexing) {
-            LambdaCompress lambdaCompressIndexes = (Object array) -> {
+            LambdaCompress lambdaCompressIndexes = (Object array, int size) -> {
                 IndexOutputStream out = new IndexOutputStream();
-                for (int i = 0; i < Array.getLength(array); i++) {
+                for (int i = 0; i < size; i++) {
                     out.writeIndex((Integer) Array.get(array, i));
                 }
                 byte[] bytes = out.toByteArray();
@@ -264,9 +264,11 @@ public class Column<T>{
         return name;
     }
 
-    public void addRows(Object[] newRows) throws IOException {
+    public void addRows(Object[] newRows, int size) throws IOException {
+        int limit = size > 0 ? size : newRows.length;
+
         // Adding compressed values to the values
-        values.add(valuesCompressor.compress(newRows));
+        values.add(valuesCompressor.compress(newRows, limit));
 
         if (!enableIndexing)
             return;
@@ -274,7 +276,7 @@ public class Column<T>{
         // Creating indexes if needed
         HashMap<T, LinkedList<Integer>> rows = new HashMap<>();
 
-        for (int i = 0; i < newRows.length; i++) {
+        for (int i = 0; i < limit; i++) {
             LinkedList<Integer> indexes;
 
             // If there was no index for this value, we create a list for that
@@ -286,7 +288,7 @@ public class Column<T>{
             }
 
             // Linking current index and this value
-            indexes.add(table.rowsCounter - newRows.length + i);
+            indexes.add(table.rowsCounter - limit + i);
         }
 
         // Adding all changes to the database
@@ -296,7 +298,7 @@ public class Column<T>{
             Arrays.parallelSort(array);
 
             // Adding compressed indexes
-            newBloc.put(entry.getKey(), indexesCompressor.compress(array));
+            newBloc.put(entry.getKey(), indexesCompressor.compress(array, limit));
         }
 
         // Adding changes

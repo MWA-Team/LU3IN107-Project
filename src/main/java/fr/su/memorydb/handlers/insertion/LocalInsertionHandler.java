@@ -21,15 +21,18 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.Array;
 import java.util.*;
-import java.util.concurrent.*;
 
 @Singleton
 public class LocalInsertionHandler implements InsertionHandler {
 
     @ConfigProperty(name = "fr.su.indexing.threshold")
     float indexingThreshold;
+
+    @ConfigProperty(name = "fr.su.blocs.size")
+    int blocsSize;
+
+    int nbMaxThreads = 8;
 
     @Override
     public int insert(File file) throws WrongTableFormatException {
@@ -40,7 +43,6 @@ public class LocalInsertionHandler implements InsertionHandler {
 
     private void handlerFile(String absolutePath) {
         Configuration conf = new Configuration();
-        int nbMaxThreads = 8;
 
         try {
             ParquetMetadata readFooter = ParquetFileReader.readFooter(conf, new Path(absolutePath), ParquetMetadataConverter.NO_FILTER);
@@ -48,10 +50,15 @@ public class LocalInsertionHandler implements InsertionHandler {
             Table table = Database.getInstance().getTables().get("test");
             MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(schema);
             GroupRecordConverter groupRecordConverter = new GroupRecordConverter(schema);
-            List<Thread> threads = new ArrayList<>();
 
             try (ParquetFileReader r = new ParquetFileReader(conf, new Path(absolutePath), readFooter)) {
                 PageReadStore pages = null;
+
+                List<Group> groups = new ArrayList<>(blocsSize > 0 ? blocsSize : conf.getInt("ipc.server.max.response.size", 1000000));
+
+                // HashMap to keep values of this bloc
+                HashMap<Column, Object[]> map = new HashMap<>();
+                initMap(map, table, blocsSize > 0 ? blocsSize : conf.getInt("ipc.server.max.response.size", 1000000));
 
                 // Parsing parquet file
                 while (null != (pages = r.readNextRowGroup())) {
@@ -59,74 +66,26 @@ public class LocalInsertionHandler implements InsertionHandler {
 
                     // Number of rows in the current group
                     int nbRows = (int) pages.getRowCount();
-                    int nbUniqueValues = 0;
 
-                    // HashMap to keep values of this bloc
-                    HashMap<Column, Object[]> map = new HashMap<>();
-                    for (Column c : table.getColumns()) {
-                        if (c.stored())
-                            map.put(c, new Object[nbRows]);
-                    }
-
-                    // Parsing the group
-                    List<Group> groups = new ArrayList<>(nbRows);
+                    // Parsing the groups
                     for (int i = 0; i < nbRows; i++) {
                         groups.add(recordReader.read());
-                    }
-                    table.rowsCounter += nbRows;
-
-                    // Adding the bloc in the database
-                    for (Column c : table.getColumns()) {
-                        if (!c.stored())
-                            continue;
-
-                        if (threads.size() == nbMaxThreads) {
-                            for (Thread thread : threads) {
-                                thread.join();
-                            }
-                            threads.clear();
+                        table.rowsCounter ++;
+                        // Adding the bloc in the database
+                        if (groups.size() == blocsSize) {
+                            addBloc(groups, table, map);
+                            groups.clear();
+                            initMap(map, table, nbRows);
                         }
-
-                        Thread thread = new Thread(() -> {
-                            Object[] rows = map.get(c);
-                            if (rows == null)
-                                return;
-
-                            HashSet<Object> values = c.indexingEnabled() ? new HashSet<>() : null;
-
-                            for (int i = 0; i < nbRows; i++) {
-                                Group g = groups.get(i);
-
-                                try {
-                                    Object val;
-                                    if (g.getFieldRepetitionCount(c.getName()) != 0)
-                                        val = c.getLambda().call(g, c.getName(), 0);
-                                    else
-                                        val = null;
-                                    rows[i] = val;
-                                    if (values != null)
-                                        values.add(val);
-                                } catch (Exception e) {
-                                    rows[i] = null;
-                                }
-                            }
-
-                            if (values != null && values.size() / ((float)table.rowsCounter) >= indexingThreshold)
-                                c.disableIndexing();
-
-                            try {
-                                c.addRows(rows);
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
-                        threads.add(thread);
-                        thread.start();
                     }
-
-                    for (Thread thread : threads) {
-                        thread.join();
+                    if (blocsSize <= 0) {
+                        addBloc(groups, table, map);
+                        groups.clear();
+                        initMap(map, table, nbRows);
                     }
+                }
+                if (!groups.isEmpty()) {
+                    addBloc(groups, table, map);
                 }
             } catch (IOException e) {
                 System.err.println("Error reading parquet file.");
@@ -137,6 +96,69 @@ public class LocalInsertionHandler implements InsertionHandler {
         } catch (IOException e) {
             System.err.println("Error creating parquet file reader.");
             e.printStackTrace();
+        }
+    }
+
+    public void addBloc(List<Group> groups, Table table, HashMap<Column, Object[]> map) throws InterruptedException {
+        List<Thread> threads = new ArrayList<>();
+
+        for (Column c : table.getColumns()) {
+            if (!c.stored())
+                continue;
+
+            if (threads.size() == nbMaxThreads) {
+                for (Thread thread : threads) {
+                    thread.join();
+                }
+                threads.clear();
+            }
+
+            Thread thread = new Thread(() -> {
+                Object[] rows = map.get(c);
+                if (rows == null)
+                    return;
+
+                HashSet<Object> values = c.indexingEnabled() ? new HashSet<>() : null;
+
+                for (int i = 0; i < groups.size(); i++) {
+                    Group g = groups.get(i);
+
+                    try {
+                        Object val;
+                        if (g.getFieldRepetitionCount(c.getName()) != 0)
+                            val = c.getLambda().call(g, c.getName(), 0);
+                        else
+                            val = null;
+                        rows[i] = val;
+                        if (values != null)
+                            values.add(val);
+                    } catch (Exception e) {
+                        rows[i] = null;
+                    }
+                }
+
+                if (values != null && values.size() / ((float)table.rowsCounter) >= indexingThreshold)
+                    c.disableIndexing();
+
+                try {
+                    c.addRows(rows, groups.size());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            threads.add(thread);
+            thread.start();
+        }
+
+        for (Thread thread : threads) {
+            thread.join();
+        }
+    }
+
+    private void initMap(HashMap<Column, Object[]> map, Table table, int nbRows) {
+        for (Column c : table.getColumns()) {
+            if (c.stored())
+                map.put(c, new Object[blocsSize > 0 ? blocsSize : nbRows]);
         }
     }
 
