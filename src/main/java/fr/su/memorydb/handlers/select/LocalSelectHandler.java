@@ -65,18 +65,14 @@ public class LocalSelectHandler implements SelectHandler {
             indexes = evaluatedIndexes.get(index);
         }
 
-        int start = indexes != null ? indexes[0] : 0;
-        int end = indexes != null ? indexes[indexes.length - 1] : Database.getInstance().getTables().get(selectBody.getTable()).rowsCounter;
-        HashMap<Column, Object[]> values = new HashMap<>();
-
         // Building response
         if (indexes == null) {
             for (int index = 0; index < Database.getInstance().getTables().get(selectBody.getTable()).rowsCounter; index++) {
-                filterIndexes(toShow, evaluatedIndexes, selectResponse, start, end, values, index);
+                filterIndexes(toShow, evaluatedIndexes, selectResponse, index);
             }
         } else {
             for (Integer index : indexes) {
-                filterIndexes(toShow, evaluatedIndexes, selectResponse, start, end, values, index);
+                filterIndexes(toShow, evaluatedIndexes, selectResponse, index);
             }
         }
           
@@ -115,7 +111,7 @@ public class LocalSelectHandler implements SelectHandler {
         return selectResponse;
     }
 
-    private void filterIndexes(HashSet<Column> toShow, LinkedList<int[]> evaluatedIndexes, SelectResponse selectResponse, int start, int end, HashMap<Column, Object[]> values, int index) throws IOException {
+    private void filterIndexes(HashSet<Column> toShow, LinkedList<int[]> evaluatedIndexes, SelectResponse selectResponse, int index) throws IOException {
         boolean pass = false;
 
         for (int[] indexSet : evaluatedIndexes) {
@@ -131,9 +127,7 @@ public class LocalSelectHandler implements SelectHandler {
 
         HashMap<String, Object> row = new HashMap<>();
         for (Column column : toShow) {
-            if (values.get(column) == null)
-                values.put(column, column.getValues(start, end));
-            row.put(column.getName(), values.get(column)[index - start]);
+            row.put(column.getName(), column.get(index));
         }
         selectResponse.add(index, row);
     }
