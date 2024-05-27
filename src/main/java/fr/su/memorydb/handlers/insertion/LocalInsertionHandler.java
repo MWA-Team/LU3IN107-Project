@@ -32,7 +32,7 @@ public class LocalInsertionHandler implements InsertionHandler {
     @ConfigProperty(name = "fr.su.blocs.size")
     int blocsSize;
 
-    int nbMaxThreads = 6;
+    int nbMaxThreads = 8;
 
     @Override
     public int insert(File file) throws WrongTableFormatException {
@@ -53,11 +53,11 @@ public class LocalInsertionHandler implements InsertionHandler {
             try (ParquetFileReader r = new ParquetFileReader(conf, absolutePath, readFooter)) {
                 PageReadStore pages = null;
 
-                List<Group> groups = new ArrayList<>(blocsSize > 0 ? blocsSize : conf.getInt("ipc.server.max.response.size", 1048576));
+                List<Group> groups = new ArrayList<>(blocsSize > 0 ? blocsSize : 1048576);
 
                 // HashMap to keep values of this bloc
                 HashMap<Column, Object[]> map = new HashMap<>();
-                initMap(map, table, blocsSize > 0 ? blocsSize : conf.getInt("ipc.server.max.response.size", 1048576));
+                initMap(map, table, blocsSize > 0 ? blocsSize : 1048576);
 
                 // Parsing parquet file
                 while (null != (pages = r.readNextRowGroup())) {
