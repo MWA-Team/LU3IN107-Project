@@ -87,25 +87,33 @@ public class LocalSelectHandler implements SelectHandler {
             String column = selectBody.getGroupBy();
 
             Column clm = Database.getInstance().getTables().get(selectBody.getTable()).getColumn(column);
-            if(clm.stored()) {
+            if (clm.stored()) {
 
-                for(Object obj : clm.getRows().keySet()) { //Represent all distinct data in column
+                for (Object hash : clm.getRows()) { //Represent all distinct data in column
 
-                    int groupByIndex = ((HashSet<Integer>)clm.getRows().get(obj)).iterator().next();
-                    //if(!selectResponse.containIndex(groupByIndex)) continue; //in case the where clause removed some of the group by values
-                    HashMap base = new HashMap();
+                    HashMap<Object, Object> hashMap = (HashMap<Object, Object>) hash;
 
-                    for(Column column1 : toShow) {
-                        base.put(column1.getName(), (column1.getName().equals(column)) ? obj : Double.NaN); //we can't access specific index here, so we will access to it later in SelectResponse
+                    for(Object obj : ((HashMap<?, ?>) hash).keySet()) {
+
+                        int groupByIndex = (int) ((List<?>) hashMap.get(obj)).iterator().next();
+                        //if(!selectResponse.containIndex(groupByIndex)) continue; //in case the where clause removed some of the group by values
+                        HashMap base = new HashMap();
+
+                        for (Column column1 : toShow) {
+                            base.put(column1.getName(), (column1.getName().equals(column)) ? obj : Double.NaN); //we can't access specific index here, so we will access to it later in SelectResponse
+                        }
+
+                        selectResponse.add(index, base);
+                        index -= 1;
                     }
+                }
+            }
 
-                    selectResponse.add(index, base);
-                    index-=1;
-               }
-           }
+        }
+
+
         return selectResponse;
     }
-
 
     private void filterIndexes(HashSet<Column> toShow, LinkedList<int[]> evaluatedIndexes, SelectResponse selectResponse, int start, int end, HashMap<Column, Object[]> values, int index) throws IOException {
         boolean pass = false;

@@ -47,7 +47,7 @@ public class RemoteSelectHandler implements SelectHandler {
             return null;
 
         SelectResponse last = retval.remove(retval.size() - 1);
-        return last.merge(retval);
+        return last.merge(retval, selectBody);
     }
 
 }

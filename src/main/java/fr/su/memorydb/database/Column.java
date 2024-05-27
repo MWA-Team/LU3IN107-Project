@@ -263,24 +263,8 @@ public class Column<T> {
     public String getName() {
         return name;
     }
-  
-    public HashSet<Integer> getAllIndexes() {
-        HashSet<Integer> retval = new HashSet<>();
-        for (HashSet<Integer> row : rows.values()) {
-            retval.addAll(row);
-        }
-        return retval;
-    }
 
-    public T getValue(Integer index) {
-        for (Map.Entry<T, HashSet<Integer>> row : rows.entrySet()) {
-            if (row.getValue().contains(index))
-                return row.getKey();
-        }
-        return null;
-    }
-
-    public HashMap<T, HashSet<Integer>> getRows() { return rows; }
+    public List<HashMap<T, Object>> getRows() { return rows; }
 
     public void addRows(Object[] newRows, int size) throws IOException {
         int limit = size > 0 ? size : newRows.length;
