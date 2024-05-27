@@ -7,16 +7,17 @@ import fr.su.memorydb.handlers.select.response.SelectResponse;
 import fr.su.memorydb.utils.lambda.LambdaTypeConverter;
 import jakarta.inject.Singleton;
 
+import java.io.IOException;
 import java.util.*;
 
 @Singleton
 public class LocalSelectHandler implements SelectHandler {
 
     @Override
-    public SelectResponse select(TableSelection.SelectBody selectBody) {
+    public SelectResponse select(TableSelection.SelectBody selectBody) throws IOException {
         HashSet<Column> toShow = new HashSet<>();
         HashSet<Column> toEvaluate = new HashSet<>();
-        LinkedList<HashSet<Integer>> evaluatedIndexes = new LinkedList<>();
+        LinkedList<int[]> evaluatedIndexes = new LinkedList<>();
         SelectResponse selectResponse = new SelectResponse();
 
         // Parsing which column to show and which column to evaluate (where clause)
@@ -40,9 +41,9 @@ public class LocalSelectHandler implements SelectHandler {
             TableSelection.Operand operand = selectBody.getWhere().get(column.getName()).getOperand();
 
             if (operand.equals(TableSelection.Operand.EQUALS)) {
-                HashSet<Integer> tmp = (HashSet<Integer>) column.getRows().get(converter.call((String) compare));
-                if (tmp != null)
-                    evaluatedIndexes.add(tmp);
+                int[] indexes = column.get(converter.call((String) compare));
+                if (indexes != null)
+                    evaluatedIndexes.add(indexes);
             }
         }
 
@@ -50,35 +51,35 @@ public class LocalSelectHandler implements SelectHandler {
         if (evaluatedIndexes.isEmpty() && !toEvaluate.isEmpty())
             return new SelectResponse();
 
-        HashSet<Integer> indexes = null;
-        if (!evaluatedIndexes.isEmpty())
-            indexes = evaluatedIndexes.pop();
-        else {
-            for (Column column : toShow) {
-                indexes = column.getAllIndexes();
-                break;
-            }
-        }
-
-        // Building response
-        for (Integer index : indexes) {
-            boolean pass = false;
-            for (HashSet<Integer> indexSet : evaluatedIndexes) {
-                if (!indexSet.contains(index)) {
-                    pass = true;
-                    break;
+        int[] indexes = null;
+        if (!evaluatedIndexes.isEmpty()) {
+            int min = -1;
+            int index = 0;
+            for (int i = 0; i < evaluatedIndexes.size(); i++) {
+                int len = evaluatedIndexes.get(i).length;
+                if (min > len || min == -1) {
+                    min = len;
+                    index = i;
                 }
             }
-            if (!evaluatedIndexes.isEmpty() && pass)
-                continue;
-            HashMap<String, Object> row = new HashMap<>();
-            for (Column column : toShow) {
-                LambdaTypeConverter converter = column.getConverter();
-                row.put(column.getName(), converter.call(String.valueOf(column.getValue(index))));
-            }
-            selectResponse.add(index, row);
+            indexes = evaluatedIndexes.get(index);
         }
 
+        int start = indexes != null ? indexes[0] : 0;
+        int end = indexes != null ? indexes[indexes.length - 1] : Database.getInstance().getTables().get(selectBody.getTable()).rowsCounter;
+        HashMap<Column, Object[]> values = new HashMap<>();
+
+        // Building response
+        if (indexes == null) {
+            for (int index = 0; index < Database.getInstance().getTables().get(selectBody.getTable()).rowsCounter; index++) {
+                filterIndexes(toShow, evaluatedIndexes, selectResponse, start, end, values, index);
+            }
+        } else {
+            for (Integer index : indexes) {
+                filterIndexes(toShow, evaluatedIndexes, selectResponse, start, end, values, index);
+            }
+        }
+          
         //Managing group by : decrementing in negative numbers
         if(selectBody.hasGroupBy()) {
 
@@ -100,12 +101,33 @@ public class LocalSelectHandler implements SelectHandler {
 
                     selectResponse.add(index, base);
                     index-=1;
+               }
+           }
+        return selectResponse;
+    }
 
-                }
+
+    private void filterIndexes(HashSet<Column> toShow, LinkedList<int[]> evaluatedIndexes, SelectResponse selectResponse, int start, int end, HashMap<Column, Object[]> values, int index) throws IOException {
+        boolean pass = false;
+
+        for (int[] indexSet : evaluatedIndexes) {
+            int found = Arrays.binarySearch(indexSet, index);
+            if (found < 0) {
+                pass = true;
+                break;
             }
         }
 
-        return selectResponse;
+        if (!evaluatedIndexes.isEmpty() && pass)
+            return;
+
+        HashMap<String, Object> row = new HashMap<>();
+        for (Column column : toShow) {
+            if (values.get(column) == null)
+                values.put(column, column.getValues(start, end));
+            row.put(column.getName(), values.get(column)[index - start]);
+        }
+        selectResponse.add(index, row);
     }
 
 }

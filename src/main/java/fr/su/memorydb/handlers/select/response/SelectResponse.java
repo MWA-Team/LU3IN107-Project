@@ -144,6 +144,8 @@ public class SelectResponse {
 
             rows = finalRows;
         }
+        return retval;
+    }
 
         return this;
     }

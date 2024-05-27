@@ -1,5 +1,6 @@
 package fr.su.memorydb;
 
+import com.aayushatharva.brotli4j.Brotli4jLoader;
 import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.annotations.QuarkusMain;
 
@@ -7,6 +8,7 @@ import io.quarkus.runtime.annotations.QuarkusMain;
 public class Main {
 
     public static void main(String[] args) {
+        Brotli4jLoader.ensureAvailability();
         Quarkus.run(args);
     }
 

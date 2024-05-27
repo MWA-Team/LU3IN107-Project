@@ -14,4 +14,5 @@ public interface SelectHandler {
      * @return status code (if local or remote has responded successfully)
      */
     public SelectResponse select(TableSelection.SelectBody selectBody) throws IOException, JsonProcessingException;
+
 }

@@ -9,7 +9,6 @@ import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
-import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
@@ -110,7 +109,7 @@ public class ForwardingManager {
      * @return boolean
      * @throws SocketException
      */
-    private boolean isLocalMachine(String testIp) throws SocketException {
+    public boolean isLocalMachine(String testIp) throws SocketException {
         Enumeration<NetworkInterface> inets = NetworkInterface.getNetworkInterfaces();
         for (NetworkInterface inet : Collections.list(inets)) {
             Enumeration<InetAddress> addrs = inet.getInetAddresses();

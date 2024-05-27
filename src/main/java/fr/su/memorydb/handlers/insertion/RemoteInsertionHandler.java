@@ -19,4 +19,5 @@ public class RemoteInsertionHandler implements InsertionHandler {
         Response response = forwardingManager.forwardInsert(file);
         return response == null ? 200 : response.getStatus();
     }
+
 }
