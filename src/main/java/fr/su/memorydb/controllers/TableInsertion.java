@@ -1,8 +1,10 @@
 package fr.su.memorydb.controllers;
 
 import fr.su.memorydb.database.Database;
+import fr.su.memorydb.database.Table;
 import fr.su.memorydb.handlers.insertion.LocalInsertionHandler;
 import fr.su.memorydb.handlers.insertion.RemoteInsertionHandler;
+import fr.su.memorydb.handlers.insertion.response.InsertResponse;
 import fr.su.memorydb.utils.exceptions.WrongTableFormatException;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -11,6 +13,8 @@ import jakarta.ws.rs.core.Response;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 
 @Path("/insert")
 public class TableInsertion {
@@ -24,14 +28,19 @@ public class TableInsertion {
     @POST
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     public Response insertion(File file) {
+        Instant start = Instant.now();
+        Table table = Database.getInstance().getTables().get("test");
+        InsertResponse response = new InsertResponse(table.getName());
         try {
             int responseCode = 200;
             localInsertionHandler.insert(file);
             remoteInsertionHandler.insert(file);
             if (responseCode == 200) {
-                return Response.status(200).entity("Insertion successful !\nIt now has " + Database.getInstance().getTables().get("test").rowsCounter + " rows !").type(MediaType.TEXT_PLAIN).build();
+                response.setSeconds(Duration.between(start, Instant.now()));
+                response.setRows(table.rowsCounter);
+                return Response.status(200).entity(response).type(MediaType.APPLICATION_JSON).build();
             } else {
-                return Response.status(500).entity("Insertion failed !").type(MediaType.TEXT_PLAIN).build();
+                return Response.status(500).type(MediaType.APPLICATION_JSON).build();
             }
         } catch (WrongTableFormatException e) {
             e.printStackTrace();
