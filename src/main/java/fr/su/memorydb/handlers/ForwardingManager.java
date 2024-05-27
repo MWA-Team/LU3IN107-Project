@@ -121,4 +121,14 @@ public class ForwardingManager {
         return false;
     }
 
+    public String getLocalIp() throws SocketException {
+
+        for (String ip : ips) {
+            if (isLocalMachine(ip))
+                return ip;
+        }
+
+        return null;
+    }
+
 }

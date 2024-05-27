@@ -3,6 +3,7 @@ package fr.su.memorydb.controllers;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import fr.su.memorydb.database.Database;
 import fr.su.memorydb.database.Table;
+import fr.su.memorydb.handlers.ForwardingManager;
 import fr.su.memorydb.handlers.select.LocalSelectHandler;
 import fr.su.memorydb.handlers.select.RemoteSelectHandler;
 import fr.su.memorydb.handlers.select.response.SelectResponse;
@@ -12,6 +13,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,6 +27,9 @@ public class TableSelection{
     @Inject
     private RemoteSelectHandler remoteSelectHandler;
 
+    @Inject
+    private ForwardingManager forwardingManager;
+
     @GET
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
@@ -34,6 +39,11 @@ public class TableSelection{
         if (table == null) {
             return Response.status(404).entity("Table '" + selectBody.table + "' not found.").build();
         }
+
+        if(selectBody.requesterIp == null) {
+            selectBody.requesterIp = forwardingManager.getLocalIp();
+        }
+        selectBody.currentIp = forwardingManager.getLocalIp();
 
         SelectResponse localResponse = localSelectHandler.select(selectBody);
         SelectResponse remoteResponse = remoteSelectHandler.select(selectBody);
@@ -45,7 +55,10 @@ public class TableSelection{
 
         List<SelectResponse> list = new ArrayList<>();
         list.add(remoteResponse);
-        SelectResponse finaleResponse = localResponse != null ? localResponse.merge(list) : remoteResponse != null ? remoteResponse : new SelectResponse();
+        SelectResponse finaleResponse = localResponse != null ? localResponse.merge(list, selectBody) : remoteResponse != null ? remoteResponse : new SelectResponse();
+
+        finaleResponse.aggregate(selectBody);
+
         return Response.status(statusCode).entity(finaleResponse).type(MediaType.APPLICATION_JSON).build();
     }
 
@@ -59,6 +72,15 @@ public class TableSelection{
         @JsonProperty
         HashMap<String, SelectOperand> where;
 
+        @JsonProperty
+        private Aggregate aggregate;
+
+        private String requesterIp;
+
+        private String currentIp;
+
+        private String groupBy;
+
         public String getTable() {
             return table;
         }
@@ -69,6 +91,37 @@ public class TableSelection{
 
         public HashMap<String, SelectOperand> getWhere() {
             return where;
+        }
+
+        public Aggregate getAggregate() {
+            return aggregate;
+        }
+
+        public boolean hasSumAggregate() {
+
+            return aggregate != null && aggregate.sum != null;
+        }
+
+        public boolean hasMeanAggregate() {
+
+            return aggregate != null && aggregate.mean != null;
+        }
+
+        public String getGroupBy() {
+            return groupBy;
+        }
+
+        public boolean hasGroupBy() {
+
+            return groupBy != null && !groupBy.isEmpty();
+        }
+
+        public String getRequesterIp() {
+            return requesterIp;
+        }
+
+        public String getCurrentIp() {
+            return currentIp;
         }
     }
 
@@ -85,6 +138,25 @@ public class TableSelection{
 
         public String getValue() {
             return value;
+        }
+    }
+
+    public static class Aggregate {
+
+        private List<String> sum;
+        private List<String> mean;
+        private List<String> count;
+
+        public List<String> getSum() {
+            return sum;
+        }
+
+        public List<String> getMean() {
+            return mean;
+        }
+
+        public List<String> getCount() {
+            return count;
         }
     }
 

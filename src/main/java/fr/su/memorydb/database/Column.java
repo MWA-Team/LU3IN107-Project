@@ -264,6 +264,8 @@ public class Column<T> {
         return name;
     }
 
+    public List<HashMap<T, Object>> getRows() { return rows; }
+
     public void addRows(Object[] newRows, int size) throws IOException {
         int limit = size > 0 ? size : newRows.length;
 

@@ -8,6 +8,7 @@ import fr.su.memorydb.utils.lambda.LambdaTypeConverter;
 import jakarta.inject.Singleton;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.*;
 
 @Singleton
@@ -79,6 +80,49 @@ public class LocalSelectHandler implements SelectHandler {
                 filterIndexes(toShow, evaluatedIndexes, selectResponse, start, end, values, index);
             }
         }
+          
+        //Managing group by : decrementing in negative numbers
+        if(selectBody.hasGroupBy()) {
+
+            int index = -1;
+            String column = selectBody.getGroupBy();
+
+            Column clm = Database.getInstance().getTables().get(selectBody.getTable()).getColumn(column);
+            if (clm.stored()) {
+
+                List<HashMap<Object, Object>> rows = clm.getRows();
+
+                List<Object> diffObjects = new ArrayList<>();
+
+                for(HashMap<Object, Object> hash : rows) {
+
+                    for(Object keys : hash.entrySet()) {
+
+                        Map.Entry<Object, Object> res = (Map.Entry<Object, Object>) keys;
+
+                        if(!diffObjects.contains(((Map.Entry<?, ?>) keys).getKey())) {
+                            diffObjects.add(((Map.Entry<?, ?>) keys).getKey());
+                        }
+                    }
+                }
+
+                for(Object obj : diffObjects) { //Passing cross all groups
+
+                    HashMap base = new HashMap();
+
+                    for (Column column1 : toShow) {
+                        base.put(column1.getName(), (column1.getName().equals(column)) ? obj : Double.NaN); //we can't access specific index here, so we will access to it later in SelectResponse
+                    }
+
+                    selectResponse.add(index, base);
+                    index -= 1;
+                }
+
+            }
+
+        }
+
+
         return selectResponse;
     }
 
