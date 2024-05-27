@@ -8,6 +8,7 @@ import fr.su.memorydb.utils.lambda.LambdaTypeConverter;
 import jakarta.inject.Singleton;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.*;
 
 @Singleton
@@ -65,14 +66,18 @@ public class LocalSelectHandler implements SelectHandler {
             indexes = evaluatedIndexes.get(index);
         }
 
+        int start = indexes != null ? indexes[0] : 0;
+        int end = indexes != null ? indexes[indexes.length - 1] : Database.getInstance().getTables().get(selectBody.getTable()).rowsCounter;
+        HashMap<Column, Object[]> values = new HashMap<>();
+
         // Building response
         if (indexes == null) {
             for (int index = 0; index < Database.getInstance().getTables().get(selectBody.getTable()).rowsCounter; index++) {
-                filterIndexes(toShow, evaluatedIndexes, selectResponse, index);
+                filterIndexes(toShow, evaluatedIndexes, selectResponse, start, end, values, index);
             }
         } else {
             for (Integer index : indexes) {
-                filterIndexes(toShow, evaluatedIndexes, selectResponse, index);
+                filterIndexes(toShow, evaluatedIndexes, selectResponse, start, end, values, index);
             }
         }
           
@@ -85,24 +90,34 @@ public class LocalSelectHandler implements SelectHandler {
             Column clm = Database.getInstance().getTables().get(selectBody.getTable()).getColumn(column);
             if (clm.stored()) {
 
-                for (Object hash : clm.getRows()) { //Represent all distinct data in column
+                List<HashMap<Object, Object>> rows = clm.getRows();
 
-                    HashMap<Object, Object> hashMap = (HashMap<Object, Object>) hash;
+                List<Object> diffObjects = new ArrayList<>();
 
-                    for(Object obj : ((HashMap<?, ?>) hash).keySet()) {
+                for(HashMap<Object, Object> hash : rows) {
 
-                        int groupByIndex = (int) ((List<?>) hashMap.get(obj)).iterator().next();
-                        //if(!selectResponse.containIndex(groupByIndex)) continue; //in case the where clause removed some of the group by values
-                        HashMap base = new HashMap();
+                    for(Object keys : hash.entrySet()) {
 
-                        for (Column column1 : toShow) {
-                            base.put(column1.getName(), (column1.getName().equals(column)) ? obj : Double.NaN); //we can't access specific index here, so we will access to it later in SelectResponse
+                        Map.Entry<Object, Object> res = (Map.Entry<Object, Object>) keys;
+
+                        if(!diffObjects.contains(((Map.Entry<?, ?>) keys).getKey())) {
+                            diffObjects.add(((Map.Entry<?, ?>) keys).getKey());
                         }
-
-                        selectResponse.add(index, base);
-                        index -= 1;
                     }
                 }
+
+                for(Object obj : diffObjects) { //Passing cross all groups
+
+                    HashMap base = new HashMap();
+
+                    for (Column column1 : toShow) {
+                        base.put(column1.getName(), (column1.getName().equals(column)) ? obj : Double.NaN); //we can't access specific index here, so we will access to it later in SelectResponse
+                    }
+
+                    selectResponse.add(index, base);
+                    index -= 1;
+                }
+
             }
 
         }
@@ -111,7 +126,7 @@ public class LocalSelectHandler implements SelectHandler {
         return selectResponse;
     }
 
-    private void filterIndexes(HashSet<Column> toShow, LinkedList<int[]> evaluatedIndexes, SelectResponse selectResponse, int index) throws IOException {
+    private void filterIndexes(HashSet<Column> toShow, LinkedList<int[]> evaluatedIndexes, SelectResponse selectResponse, int start, int end, HashMap<Column, Object[]> values, int index) throws IOException {
         boolean pass = false;
 
         for (int[] indexSet : evaluatedIndexes) {
@@ -127,7 +142,9 @@ public class LocalSelectHandler implements SelectHandler {
 
         HashMap<String, Object> row = new HashMap<>();
         for (Column column : toShow) {
-            row.put(column.getName(), column.get(index));
+            if (values.get(column) == null)
+                values.put(column, column.getValues(start, end));
+            row.put(column.getName(), values.get(column)[index - start]);
         }
         selectResponse.add(index, row);
     }
