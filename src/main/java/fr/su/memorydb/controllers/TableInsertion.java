@@ -50,6 +50,8 @@ public class TableInsertion {
             return Response.status(500).entity(new ErrorResponse(tableName, e.getMessage())).build();
         } catch (IOException e) {
             throw new RuntimeException(e);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 

@@ -24,7 +24,7 @@ public class ForwardingManager {
     RoutingContext context;
 
     @ConfigProperty(name = "fr.su.servers.ips")
-    List<String> ips;
+    String[] ips;
 
     public ForwardingManager() {}
 
@@ -34,7 +34,7 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    public Response forwardInsert(File body) throws IOException {
+    public Response forwardInsert(File body) throws IOException, InterruptedException {
         return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
             return proxy.insert(signature, id, (File) data);
         });
@@ -46,7 +46,7 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    public Response forwardCreate(String body) throws IOException {
+    public Response forwardCreate(String body) throws IOException, InterruptedException {
         return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
             return proxy.create(signature, id, data.toString());
         });
@@ -58,7 +58,7 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    public Response forwardSelect(String body) throws IOException {
+    public Response forwardSelect(String body) throws IOException, InterruptedException {
         return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
             return proxy.select(signature, id, data.toString());
         });
@@ -73,7 +73,7 @@ public class ForwardingManager {
      * @return Object
      * @throws IOException
      */
-    private Response forwardQuery(Object body, ProxyLambda lambda) throws IOException {
+    private Response forwardQuery(Object body, ProxyLambda lambda) throws IOException, InterruptedException {
         /*
         All server use a header as a signature. If this signature isn't found, we can assume that a client made the query.
          */
@@ -84,23 +84,31 @@ public class ForwardingManager {
 
         int id = 1;
         String localAddr = context.request().localAddress().hostAddress();
-        List<Response> responses = new ArrayList<>();
-        for (String ip : ips) {
+        List<Thread> threads = new ArrayList<>(ips.length - 1);
+        HashMap<Integer, Response> responses = new HashMap<>();
+        for (int i = 0; i < ips.length; i++) {
+            String ip = ips[i];
             if (isLocalMachine(ip))
                 continue;
-            else {
-                System.out.println("Forwarding happened once.");
+
+            int finalId = id;
+            Thread thread = new Thread(() -> {
                 URI newUri = URI.create("http://" + ip + ":8080" + context.request().uri());
                 ForwardingProxy proxy = RestClientBuilder.newBuilder().baseUri(newUri).build(ForwardingProxy.class);
-                Response r = lambda.call(proxy, localAddr, Integer.toString(id), body);
-                responses.add(r);
-                id++;
-            }
+                Response r = lambda.call(proxy, localAddr, Integer.toString(finalId), body);
+                responses.put(finalId, r);
+            });
+
+            id++;
+            threads.add(thread);
+            thread.start();
         }
-        
-        List<Response> entities = new LinkedList<>(responses);
-        Response response = Response.status(200).entity(entities).build();
-        return response;
+
+        for (Thread thread : threads) {
+            thread.join();
+        }
+
+        return Response.status(200).entity(responses).build();
     }
 
     /**
@@ -122,12 +130,10 @@ public class ForwardingManager {
     }
 
     public String getLocalIp() throws SocketException {
-
         for (String ip : ips) {
             if (isLocalMachine(ip))
                 return ip;
         }
-
         return null;
     }
 
