@@ -7,6 +7,7 @@ import fr.su.memorydb.database.Column;
 import fr.su.memorydb.handlers.ForwardingManager;
 import fr.su.memorydb.handlers.table.response.TableResponse;
 import fr.su.memorydb.utils.ToolBox;
+import io.vertx.ext.web.RoutingContext;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.Response;
@@ -24,7 +25,7 @@ public class RemoteTableHandler implements TableHandler {
     ForwardingManager forwardingManager;
 
     @Override
-    public void createTable(TableBody tableBody) throws IOException, InterruptedException {
+    public void createTable(TableBody tableBody, String server_id) throws IOException, InterruptedException {
         ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
         String json = ow.writeValueAsString(tableBody);
         Response response = forwardingManager.forwardCreate(json);
