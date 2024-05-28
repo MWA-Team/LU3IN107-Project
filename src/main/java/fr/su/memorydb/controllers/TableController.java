@@ -30,13 +30,10 @@ public class TableController {
     @Inject
     RemoteTableHandler remoteTableHandler;
 
-    @Context
-    RoutingContext context;
-
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response table(TableBody tableBody) throws IOException, InterruptedException {
+    public Response table(TableBody tableBody, @QueryParam("Server-Signature") String serverSignature) throws IOException, InterruptedException {
         Instant start = Instant.now();
 
         if(Database.getInstance().getTables().containsKey(tableBody.tableName)) {
@@ -55,7 +52,7 @@ public class TableController {
         thread.join();
 
         DetailsResponse response;
-        if (context.queryParams().get("Server-Signature") != null) {
+        if (serverSignature != null) {
             TableResponse tmp = new TableResponse(tableBody.tableName);
             for (Column column : Database.getInstance().getTables().get(tableBody.getTableName()).getColumns()) {
                 if (column.stored())
