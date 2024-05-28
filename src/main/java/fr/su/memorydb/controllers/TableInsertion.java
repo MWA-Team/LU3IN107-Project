@@ -27,14 +27,14 @@ public class TableInsertion {
 
     @POST
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
-    public Response insertion(File file) {
+    public Response insertion(@QueryParam("table") String tableName, File file) {
         Instant start = Instant.now();
-        Table table = Database.getInstance().getTables().get("test");
+        Table table = Database.getInstance().getTables().get(tableName);
         InsertResponse response = new InsertResponse(table.getName());
         try {
             int responseCode = 200;
-            localInsertionHandler.insert(file);
-            remoteInsertionHandler.insert(file);
+            localInsertionHandler.insert(file, tableName);
+            remoteInsertionHandler.insert(file, tableName);
             if (responseCode == 200) {
                 response.setSeconds(Duration.between(start, Instant.now()));
                 response.setRows(table.rowsCounter);
