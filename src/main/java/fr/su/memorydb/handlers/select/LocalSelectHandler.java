@@ -19,7 +19,7 @@ public class LocalSelectHandler implements SelectHandler {
         HashSet<Column> toShow = new HashSet<>();
         HashSet<Column> toEvaluate = new HashSet<>();
         LinkedList<int[]> evaluatedIndexes = new LinkedList<>();
-        SelectResponse selectResponse = new SelectResponse();
+        SelectResponse selectResponse = new SelectResponse(selectBody.getTable());
 
         // Parsing which column to show and which column to evaluate (where clause)
         for(Column column : Database.getInstance().getTables().get(selectBody.getTable()).getColumns()) {
@@ -50,7 +50,7 @@ public class LocalSelectHandler implements SelectHandler {
 
         // If there was a filter on this server use evaluatedIndex, else return all indexes on all selected columns
         if (evaluatedIndexes.isEmpty() && !toEvaluate.isEmpty())
-            return new SelectResponse();
+            return new SelectResponse(selectBody.getTable());
 
         int[] indexes = null;
         if (!evaluatedIndexes.isEmpty()) {

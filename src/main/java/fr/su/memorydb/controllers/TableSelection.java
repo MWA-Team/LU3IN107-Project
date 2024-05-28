@@ -7,6 +7,7 @@ import fr.su.memorydb.handlers.ForwardingManager;
 import fr.su.memorydb.handlers.select.LocalSelectHandler;
 import fr.su.memorydb.handlers.select.RemoteSelectHandler;
 import fr.su.memorydb.handlers.select.response.SelectResponse;
+import fr.su.memorydb.utils.response.ErrorResponse;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -14,6 +15,7 @@ import jakarta.ws.rs.core.Response;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -34,10 +36,13 @@ public class TableSelection{
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response selectColumns(SelectBody selectBody) throws IOException {
+
+        Instant instant = Instant.now();
+
         Database database = Database.getInstance();
         Table table = database.getTables().get(selectBody.table);
         if (table == null) {
-            return Response.status(404).entity("Table '" + selectBody.table + "' not found.").build();
+            return Response.status(404).entity(new ErrorResponse(selectBody.table, "Table '" + selectBody.table + "' not found.")).build();
         }
 
         if(selectBody.requesterIp == null) {
@@ -55,11 +60,11 @@ public class TableSelection{
 
         List<SelectResponse> list = new ArrayList<>();
         list.add(remoteResponse);
-        SelectResponse finaleResponse = localResponse != null ? localResponse.merge(list, selectBody) : remoteResponse != null ? remoteResponse : new SelectResponse();
-
+        SelectResponse finaleResponse = localResponse != null ? localResponse.merge(list, selectBody) : remoteResponse != null ? remoteResponse : new SelectResponse(selectBody.table);
+        finaleResponse.setStart(instant);
         finaleResponse.aggregate(selectBody);
 
-        return Response.status(statusCode).entity(finaleResponse).type(MediaType.APPLICATION_JSON).build();
+        return Response.status(statusCode).entity(finaleResponse.done()).type(MediaType.APPLICATION_JSON).build();
     }
 
     public static class SelectBody {
