@@ -35,7 +35,7 @@ public class TableSelection{
     @GET
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response selectColumns(SelectBody selectBody) throws IOException {
+    public Response selectColumns(SelectBody selectBody) throws IOException, InterruptedException {
 
         Instant instant = Instant.now();
 
