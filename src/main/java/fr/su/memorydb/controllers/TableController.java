@@ -46,7 +46,7 @@ public class TableController {
         thread.join();
 
         DetailsResponse response;
-        if (context.queryParams().get("Server-Signature") != null) {
+        if (context.request().headers().get("Server-Signature") != null) {
             TableResponse tmp = new TableResponse(tableBody.tableName);
             for (Column column : Database.getInstance().getTables().get(tableBody.getTableName()).getColumns()) {
                 if (column.stored())
