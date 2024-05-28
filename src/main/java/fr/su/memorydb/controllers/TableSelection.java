@@ -112,6 +112,21 @@ public class TableSelection{
             return aggregate != null && aggregate.mean != null;
         }
 
+        public boolean hasCountAggregate() {
+
+            return aggregate != null && aggregate.count != null;
+        }
+
+        public boolean hasMaxAggregate() {
+
+            return aggregate != null && aggregate.max != null;
+        }
+
+        public boolean hasMinAggregate() {
+
+            return aggregate != null && aggregate.min != null;
+        }
+
         public String getGroupBy() {
             return groupBy;
         }
@@ -151,6 +166,8 @@ public class TableSelection{
         private List<String> sum;
         private List<String> mean;
         private List<String> count;
+        private List<String> max;
+        private List<String> min;
 
         public List<String> getSum() {
             return sum;
@@ -162,6 +179,14 @@ public class TableSelection{
 
         public List<String> getCount() {
             return count;
+        }
+
+        public List<String> getMax() {
+            return max;
+        }
+
+        public List<String> getMin() {
+            return min;
         }
     }
 
