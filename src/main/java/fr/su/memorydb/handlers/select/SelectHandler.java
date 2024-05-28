@@ -13,6 +13,6 @@ public interface SelectHandler {
      * @param query JSON Body which contains the query
      * @return status code (if local or remote has responded successfully)
      */
-    public SelectResponse select(TableSelection.SelectBody selectBody) throws IOException, JsonProcessingException;
+    public SelectResponse select(TableSelection.SelectBody selectBody) throws IOException, JsonProcessingException, InterruptedException;
 
 }

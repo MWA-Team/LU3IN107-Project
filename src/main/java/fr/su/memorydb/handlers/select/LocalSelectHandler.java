@@ -18,7 +18,7 @@ public class LocalSelectHandler implements SelectHandler {
     int blocsSize;
 
     @Override
-    public SelectResponse select(TableSelection.SelectBody selectBody) throws IOException {
+    public SelectResponse select(TableSelection.SelectBody selectBody) throws IOException, InterruptedException {
         int blocsSize = this.blocsSize > 0 ? this.blocsSize : 1048576;
         HashSet<Column> toShow = new HashSet<>();
         HashSet<Column> toEvaluate = new HashSet<>();
@@ -67,13 +67,12 @@ public class LocalSelectHandler implements SelectHandler {
                     index = i;
                 }
             }
-            indexes = evaluatedIndexes.get(index);
+            int[] tmp = evaluatedIndexes.get(index);
+            indexes = tmp != null ? tmp : new int[0];
         }
 
-        int start = indexes != null ? indexes[0] : 0;
-        HashMap<Column, Object[]> values = new HashMap<>();
-
         // Building response
+        HashMap<Column, Object[]> values = new HashMap<>();
         if (indexes == null) {
             int bloc = 0;
             for (int index = 0; index < Database.getInstance().getTables().get(selectBody.getTable()).rowsCounter; index++) {

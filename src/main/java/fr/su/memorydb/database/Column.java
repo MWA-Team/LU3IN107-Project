@@ -420,8 +420,8 @@ public class Column<T> {
         throw new IndexOutOfBoundsException();
     }
 
-    public int[] get(T val) throws IOException {
-        LinkedList<Integer> list = new LinkedList<>();
+    public int[] get(T val) throws IOException, InterruptedException {
+        List<Integer> list = Collections.synchronizedList(new LinkedList<>());
 
         if (enableIndexing) {
             for (HashMap<T, Object> bloc : rows) {
@@ -435,46 +435,46 @@ public class Column<T> {
                     list.add((Integer) Array.get(tmp, j));
                 }
             }
+            return list.stream().mapToInt(Integer::intValue).toArray();
         } else {
-            // Might need to improve this part for more efficient search with threads perhaps
-            int index = 0;
-            for (Object bloc : values) {
-                Object tmpArray = valuesCompressor.uncompress(bloc);
-                for (int j = 0; j < Array.getLength(tmpArray); j++) {
-                    Object tmp = Array.get(tmpArray, j);
-                    if ((val == null && tmp == null) || (tmp != null && tmp.equals(val)))
-                        list.add(index);
-                    index++;
+            int nbMaxThreads = 8;
+            List<Thread> threads = new ArrayList<>(nbMaxThreads);
+
+            for (int i = 0; i < values.size(); i++) {
+                if (threads.size() == nbMaxThreads) {
+                    for (Thread thread : threads) {
+                        thread.join();
+                    }
+                    threads.clear();
                 }
+
+                int finalI = i;
+                Thread thread = new Thread(() -> {
+                    Object tmpArray;
+                    try {
+                        tmpArray = valuesCompressor.uncompress(values.get(finalI));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    for (int j = 0; j < Array.getLength(tmpArray); j++) {
+                        Object tmp = Array.get(tmpArray, j);
+                        if ((val == null && tmp == null) || (tmp != null && tmp.equals(val)))
+                            synchronized (list) {
+                                list.add(j + finalI * blocsSize);
+                            }
+                    }
+                });
+                threads.add(thread);
+                thread.start();
             }
+            for (Thread thread : threads) {
+                thread.join();
+            }
+
+            int[] retval = list.stream().mapToInt(Integer::intValue).toArray();
+            Arrays.parallelSort(retval);
+            return retval;
         }
-
-        return list.stream().mapToInt(Integer::intValue).toArray();
-    }
-
-    public T[] getValues(int start, int end) throws IOException {
-        LinkedList<T> retval = new LinkedList<>();
-        int count = 0;
-        boolean first = true;
-        for (Object bloc : values) {
-            Object tmp = valuesCompressor.uncompress(bloc);
-            int length = Array.getLength(tmp);
-            if (start >= count + length) {
-                count += length;
-                continue;
-            }
-            if (end <= count) {
-                break;
-            }
-
-            for (int i = first ? start - count : 0; i < length && i <= end; i++) {
-                retval.add(type.cast(Array.get(tmp, i)));
-                count++;
-            }
-
-            first = false;
-        }
-        return (T[]) retval.toArray();
     }
 
     public T[] getValues(int bloc) throws IOException {
