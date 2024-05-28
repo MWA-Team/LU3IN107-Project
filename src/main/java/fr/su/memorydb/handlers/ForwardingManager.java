@@ -78,8 +78,8 @@ public class ForwardingManager {
         /*
         All server use a header as a signature. If this signature isn't found, we can assume that a client made the query.
          */
-        String serverSignature = context.queryParams().get("Server-Signature");
-        if (serverSignature != null) {
+        String serverSignature = context.request().headers().get("Server-Signature");
+        if (serverSignature != null && !serverSignature.isEmpty()) {
             return null;
         }
 
