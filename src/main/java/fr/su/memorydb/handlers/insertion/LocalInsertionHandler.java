@@ -35,18 +35,18 @@ public class LocalInsertionHandler implements InsertionHandler {
     int nbMaxThreads = 8;
 
     @Override
-    public int insert(File file) throws WrongTableFormatException {
+    public int insert(File file, String table) throws WrongTableFormatException {
         String absolutePath = file.getAbsolutePath();
-        handlerFile(new Path(absolutePath));
+        handlerFile(new Path(absolutePath), table);
         return 200;
     }
 
-    private void handlerFile(Path absolutePath) {
+    private void handlerFile(Path absolutePath, String tableName) {
         try {
             Configuration conf = new Configuration();
             ParquetMetadata readFooter = ParquetFileReader.readFooter(conf, absolutePath, ParquetMetadataConverter.NO_FILTER);
             MessageType schema = readFooter.getFileMetaData().getSchema();
-            Table table = Database.getInstance().getTables().get("test");
+            Table table = Database.getInstance().getTables().get(tableName);
             MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(schema);
             GroupRecordConverter groupRecordConverter = new GroupRecordConverter(schema);
 
