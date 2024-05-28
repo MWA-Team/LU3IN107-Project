@@ -8,7 +8,6 @@ import io.quarkus.runtime.annotations.QuarkusMain;
 public class Main {
 
     public static void main(String[] args) {
-        Brotli4jLoader.ensureAvailability();
         Quarkus.run(args);
     }
 
