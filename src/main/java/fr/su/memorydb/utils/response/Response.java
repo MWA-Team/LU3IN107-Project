@@ -14,4 +14,9 @@ public abstract class Response {
     public Response(String table) {
         this.table = table;
     }
+
+    public String getTable() {
+        return table;
+    }
+
 }

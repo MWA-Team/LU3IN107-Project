@@ -5,11 +5,13 @@ import fr.su.memorydb.controllers.TableController.TableBody;
 import fr.su.memorydb.database.Column;
 import fr.su.memorydb.database.Database;
 import fr.su.memorydb.database.Table;
+import fr.su.memorydb.utils.ToolBox;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.Context;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import java.util.HashMap;
 import java.util.List;
 
 @Singleton
@@ -34,7 +36,7 @@ public class LocalTableHandler implements TableHandler {
     int blocsSize;
 
     @Override
-    public TableBody createTable(TableBody tableBody) {
+    public void createTable(TableBody tableBody) {
         Database database = Database.getInstance();
         Table table = new Table(tableBody.getTableName());
 
@@ -45,7 +47,6 @@ public class LocalTableHandler implements TableHandler {
         String server_id = context.request().params().get("server_id");
         if (server_id != null)
             id = Integer.parseInt(server_id);
-        // Can we use modulo instead ???
         int nbFields = 0;
         int startingIndex = 0;
 
@@ -86,10 +87,13 @@ public class LocalTableHandler implements TableHandler {
                     newColumn = new Column<>(table, tableParameter.getName(), stored, blocsSize, String.class, enableValuesCompression, enableIndexesCompression, enableIndexing);
             }
             table.addColumn(newColumn);
+            if (stored) {
+                HashMap<Column, Integer> tmp = ToolBox.columnsRepartition.computeIfAbsent(tableBody.getTableName(), k -> new HashMap<>());
+                tmp.put(newColumn, id);
+            }
         }
 
         database.addTable(table);
-        return tableBody;
     }
 
 }
