@@ -30,6 +30,9 @@ public class LocalTableHandler implements TableHandler {
     @ConfigProperty(name = "fr.su.enable.indexing")
     boolean enableIndexing;
 
+    @ConfigProperty(name = "fr.su.blocs.size")
+    int blocsSize;
+
     @Override
     public TableBody createTable(TableBody tableBody) {
         Database database = Database.getInstance();
@@ -65,22 +68,22 @@ public class LocalTableHandler implements TableHandler {
             Column newColumn = null;
             switch (tableParameter.getType().toLowerCase()) {
                 case "boolean":
-                    newColumn = new Column<Boolean>(table, tableParameter.getName(), stored, Boolean.class, enableValuesCompression, enableIndexesCompression, enableIndexing);
+                    newColumn = new Column<>(table, tableParameter.getName(), stored, blocsSize, Boolean.class, enableValuesCompression, enableIndexesCompression, enableIndexing);
                     break;
                 case "int32":
-                    newColumn = new Column<Integer>(table, tableParameter.getName(), stored, Integer.class, enableValuesCompression, enableIndexesCompression, enableIndexing);
+                    newColumn = new Column<>(table, tableParameter.getName(), stored, blocsSize, Integer.class, enableValuesCompression, enableIndexesCompression, enableIndexing);
                     break;
                 case "int64":
-                    newColumn = new Column<Long>(table, tableParameter.getName(), stored, Long.class, enableValuesCompression, enableIndexesCompression, enableIndexing);
+                    newColumn = new Column<>(table, tableParameter.getName(), stored, blocsSize, Long.class, enableValuesCompression, enableIndexesCompression, enableIndexing);
                     break;
                 case "float":
-                    newColumn = new Column<Float>(table, tableParameter.getName(), stored, Float.class, enableValuesCompression, enableIndexesCompression, enableIndexing);
+                    newColumn = new Column<>(table, tableParameter.getName(), stored, blocsSize, Float.class, enableValuesCompression, enableIndexesCompression, enableIndexing);
                     break;
                 case "double":
-                    newColumn = new Column<Double>(table, tableParameter.getName(), stored, Double.class, enableValuesCompression, enableIndexesCompression, enableIndexing);
+                    newColumn = new Column<>(table, tableParameter.getName(), stored, blocsSize, Double.class, enableValuesCompression, enableIndexesCompression, enableIndexing);
                     break;
                 default:
-                    newColumn = new Column<String>(table, tableParameter.getName(), stored, String.class, enableValuesCompression, enableIndexesCompression, enableIndexing);
+                    newColumn = new Column<>(table, tableParameter.getName(), stored, blocsSize, String.class, enableValuesCompression, enableIndexesCompression, enableIndexing);
             }
             table.addColumn(newColumn);
         }

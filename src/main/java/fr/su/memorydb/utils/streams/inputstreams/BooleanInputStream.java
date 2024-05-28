@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.LinkedList;
 
 public class BooleanInputStream extends InputStream {
 
@@ -21,21 +22,23 @@ public class BooleanInputStream extends InputStream {
             ite++;
         } else {
             byte[] tmp = new byte[4];
-            if (byteArrayInputStream.read(tmp) != 4) {
+            int code;
+            code = byteArrayInputStream.read(tmp);
+            if (code == -1) {
+                throw new IOException("End of stream reached");
+            }
+            if (code != 4) {
                 throw new IOException("Failed to read 4 bytes for an Integer (count)");
             }
             count = ByteBuffer.wrap(tmp).getInt();
             ite = 1;
-            if (count == -1) {
-                throw new IOException("End of stream reached");
-            }
             if (count == 0) {
                 value = null;
                 return null;
             }
             int bool = byteArrayInputStream.read();
             if (bool == -1) {
-                throw new IOException("Failed to read 4 bytes for a Boolean");
+                throw new IOException("Failed to read 1 byte for a Boolean");
             }
             value = bool == 1;
         }
