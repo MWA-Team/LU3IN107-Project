@@ -50,14 +50,34 @@ public class LocalInsertionHandler implements InsertionHandler {
             MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(schema);
             GroupRecordConverter groupRecordConverter = new GroupRecordConverter(schema);
 
+            int blocsSize;
+            if (this.blocsSize <= 0) {
+                blocsSize = 1048576;
+                for (Column column : table.getColumns()) {
+                    column.setBlocsSize(blocsSize);
+                }
+            } else
+                blocsSize = this.blocsSize;
+
             try (ParquetFileReader r = new ParquetFileReader(conf, absolutePath, readFooter)) {
                 PageReadStore pages = null;
 
-                List<Group> groups = new ArrayList<>(blocsSize > 0 ? blocsSize : 1048576);
+                int max = blocsSize;
+                for (Column column : table.getColumns()) {
+                    if (!column.stored())
+                        continue;
+                    if (!column.isLastBlocIsFull()) {
+                        int tmp = (blocsSize - column.getLastBlocsSize()) + max;
+                        if (max < tmp)
+                            max = tmp;
+                        break;
+                    }
+                }
+                List<Group> groups = new ArrayList<>(max);
 
                 // HashMap to keep values of this bloc
                 HashMap<Column, Object[]> map = new HashMap<>();
-                initMap(map, table, blocsSize > 0 ? blocsSize : 1048576);
+                initMap(map, table, max);
 
                 // Parsing parquet file
                 while (null != (pages = r.readNextRowGroup())) {
@@ -71,16 +91,15 @@ public class LocalInsertionHandler implements InsertionHandler {
                         groups.add(recordReader.read());
                         table.rowsCounter++;
                         // Adding the bloc in the database
-                        if (groups.size() == blocsSize) {
+                        if (groups.size() == max) {
                             addBloc(groups, table, map);
+                            if (max != blocsSize) {
+                                max = blocsSize;
+                                groups = new ArrayList<>(max);
+                            }
                             groups.clear();
-                            initMap(map, table, nbRows);
+                            initMap(map, table, max);
                         }
-                    }
-                    if (blocsSize <= 0) {
-                        addBloc(groups, table, map);
-                        groups.clear();
-                        initMap(map, table, nbRows);
                     }
                 }
                 if (!groups.isEmpty()) {
@@ -157,7 +176,7 @@ public class LocalInsertionHandler implements InsertionHandler {
     private void initMap(HashMap<Column, Object[]> map, Table table, int nbRows) {
         for (Column c : table.getColumns()) {
             if (c.stored())
-                map.put(c, new Object[blocsSize > 0 ? blocsSize : nbRows]);
+                map.put(c, new Object[nbRows]);
         }
     }
 

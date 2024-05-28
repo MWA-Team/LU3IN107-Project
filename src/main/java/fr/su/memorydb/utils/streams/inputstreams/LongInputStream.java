@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.LinkedList;
 
 public class LongInputStream extends InputStream {
 
@@ -21,14 +22,14 @@ public class LongInputStream extends InputStream {
             ite++;
         } else {
             byte[] tmp = new byte[4];
-            if (byteArrayInputStream.read(tmp) != 4) {
+            int code = byteArrayInputStream.read(tmp);
+            if (code == -1)
+                throw new IOException("End of stream reached");
+            if (code != 4) {
                 throw new IOException("Failed to read 4 bytes for an Integer (count)");
             }
             count = ByteBuffer.wrap(tmp).getInt();
             ite = 1;
-            if (count == -1) {
-                throw new IOException("End of stream reached");
-            }
             if (count == 0) {
                 value = null;
                 return null;

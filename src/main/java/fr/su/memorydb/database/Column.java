@@ -21,6 +21,7 @@ public class Column<T> {
     private final Table table;
     private final String name;
     private final boolean stored;
+    private int blocsSize;
     private List<HashMap<T, Object>> rows;
     private final List<Object> values;
     private final Class<T> type;
@@ -29,10 +30,12 @@ public class Column<T> {
     private final Compressor valuesCompressor;
     private final Compressor indexesCompressor;
     private boolean enableIndexing;
+    private boolean lastBlocIsFull = true;
 
     public Column() {
         name = null;
         stored = false;
+        blocsSize = 0;
         rows = null;
         converter = null;
         table = null;
@@ -43,10 +46,11 @@ public class Column<T> {
         enableIndexing = false;
     }
 
-    public Column(Table table, String name, boolean stored, Class<T> type, boolean enableValuesCompression, boolean enableIndexesCompression, boolean enableIndexing) {
+    public Column(Table table, String name, boolean stored, int blocsSize, Class<T> type, boolean enableValuesCompression, boolean enableIndexesCompression, boolean enableIndexing) {
         this.table = table;
         this.name = name;
         this.stored = stored;
+        this.blocsSize = blocsSize;
         this.rows = new ArrayList<>();
         this.type = type;
         this.values = new ArrayList<>();
@@ -209,7 +213,6 @@ public class Column<T> {
                     for (int i = 0; i < size; i++) {
                         out.writeString((String) Array.get(array, i));
                     }
-                    out.finish();
                     byte[] bytes = out.toByteArray();
                     out.close();
                     return bytes;
@@ -268,9 +271,70 @@ public class Column<T> {
 
     public void addRows(Object[] newRows, int size) throws IOException {
         int limit = size > 0 ? size : newRows.length;
+        Object[] toAdd;
+        boolean replacing = true;
+
+        // Getting last inserted array
+        if (!lastBlocIsFull)
+            toAdd = (Object[]) valuesCompressor.uncompress(values.get(values.size() - 1));
+        else {
+            toAdd = newRows;
+            replacing = false;
+        }
+
+        if (replacing) {
+            Object[] tmp = toAdd;
+            int newLength = Math.min(tmp.length + limit, blocsSize);
+            toAdd = new Object[newLength];
+            // Adding already present values in the new array
+            System.arraycopy(tmp, 0, toAdd, 0, tmp.length);
+            // Completing the array with new values
+            System.arraycopy(newRows, 0, toAdd, tmp.length, newLength - tmp.length);
+            values.set(Math.max(values.size() - 1, 0), valuesCompressor.compress(toAdd, newLength));
+
+            // Changing indexes if needed
+            if (indexingEnabled()) {
+                HashMap<T, LinkedList<Integer>> rows = new HashMap<>();
+                int offset = size > 0 ? size : newRows.length;
+                for (int i = 0; i < newLength; i++) {
+                    LinkedList<Integer> indexes;
+
+                    // If there was no index for this value, we create a list for that
+                    if (rows.containsKey(type.cast(toAdd[i])))
+                        indexes = rows.get(type.cast(toAdd[i]));
+                    else {
+                        indexes = new LinkedList<>();
+                        rows.put(type.cast(toAdd[i]), indexes);
+                    }
+
+                    // Linking current index and this value
+                    indexes.add(table.rowsCounter - offset + i);
+                }
+
+                // Adding all changes to the database
+                HashMap<T, Object> newBloc = new HashMap<>();
+                for (Map.Entry<T, LinkedList<Integer>> entry : rows.entrySet()) {
+                    int[] array = entry.getValue().stream().mapToInt(Integer::intValue).toArray();
+
+                    // Adding compressed indexes
+                    newBloc.put(entry.getKey(), indexesCompressor.compress(array, array.length));
+                }
+
+                // Adding changes
+                this.rows.set(this.rows.size() - 1, newBloc);
+            }
+
+            int max = Math.max(tmp.length - newLength, newLength - tmp.length);
+            limit = limit - max;
+            toAdd = new Object[limit];
+            // Adding the rest of the values
+            System.arraycopy(newRows, max, toAdd, 0, toAdd.length);
+        }
+
+        lastBlocIsFull = limit == blocsSize;
 
         // Adding compressed values to the values
-        values.add(valuesCompressor.compress(newRows, limit));
+        values.add(valuesCompressor.compress(toAdd, limit));
 
         if (!enableIndexing)
             return;
@@ -282,11 +346,11 @@ public class Column<T> {
             LinkedList<Integer> indexes;
 
             // If there was no index for this value, we create a list for that
-            if (rows.containsKey(type.cast(newRows[i])))
-                indexes = rows.get(type.cast(newRows[i]));
+            if (rows.containsKey(type.cast(toAdd[i])))
+                indexes = rows.get(type.cast(toAdd[i]));
             else {
                 indexes = new LinkedList<>();
-                rows.put(type.cast(newRows[i]), indexes);
+                rows.put(type.cast(toAdd[i]), indexes);
             }
 
             // Linking current index and this value
@@ -297,10 +361,9 @@ public class Column<T> {
         HashMap<T, Object> newBloc = new HashMap<>();
         for (Map.Entry<T, LinkedList<Integer>> entry : rows.entrySet()) {
             int[] array = entry.getValue().stream().mapToInt(Integer::intValue).toArray();
-            Arrays.parallelSort(array);
 
             // Adding compressed indexes
-            newBloc.put(entry.getKey(), indexesCompressor.compress(array, limit));
+            newBloc.put(entry.getKey(), indexesCompressor.compress(array, array.length));
         }
 
         // Adding changes
@@ -321,6 +384,25 @@ public class Column<T> {
 
     public LambdaInsertion getLambda() {
         return lambda;
+    }
+
+    public int getBlocsSize() {
+        return blocsSize;
+    }
+
+    public void setBlocsSize(int blocsSize) {
+        this.blocsSize = blocsSize;
+    }
+
+    public int getLastBlocsSize() throws IOException {
+        if (!values.isEmpty()) {
+            return Array.getLength(valuesCompressor.uncompress(values.get(values.size() - 1)));
+        }
+        return -1;
+    }
+
+    public boolean isLastBlocIsFull() {
+        return lastBlocIsFull;
     }
 
     public T get(int index) throws IOException {
@@ -393,6 +475,12 @@ public class Column<T> {
             first = false;
         }
         return (T[]) retval.toArray();
+    }
+
+    public T[] getValues(int bloc) throws IOException {
+        if (bloc < values.size() && bloc > 0)
+            return (T[]) valuesCompressor.uncompress(values.get(bloc));
+        return null;
     }
 
     public void disableIndexing() {
