@@ -4,6 +4,7 @@ import fr.su.memorydb.proxy.ForwardingProxy;
 import fr.su.memorydb.utils.lambda.ProxyLambda;
 
 import io.vertx.ext.web.RoutingContext;
+import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.QueryParam;
@@ -77,7 +78,7 @@ public class ForwardingManager {
         /*
         All server use a header as a signature. If this signature isn't found, we can assume that a client made the query.
          */
-        String serverSignature = context.request().headers().get("Server-Signature");
+        String serverSignature = context.queryParams().get("Server-Signature");
         if (serverSignature != null && !serverSignature.isEmpty()) {
             return null;
         }
@@ -86,6 +87,7 @@ public class ForwardingManager {
         String localAddr = context.request().localAddress().hostAddress();
         List<Thread> threads = new ArrayList<>(ips.length - 1);
         HashMap<Integer, Response> responses = new HashMap<>();
+        String uri = context.request().uri();
         for (int i = 0; i < ips.length; i++) {
             String ip = ips[i];
             if (isLocalMachine(ip))
@@ -93,7 +95,7 @@ public class ForwardingManager {
 
             int finalId = id;
             Thread thread = new Thread(() -> {
-                URI newUri = URI.create("http://" + ip + ":8080" + context.request().uri());
+                URI newUri = URI.create("http://" + ip + ":8080" + uri);
                 ForwardingProxy proxy = RestClientBuilder.newBuilder().baseUri(newUri).build(ForwardingProxy.class);
                 Response r = lambda.call(proxy, localAddr, Integer.toString(finalId), body);
                 responses.put(finalId, r);

@@ -17,9 +17,6 @@ import java.util.List;
 @Singleton
 public class LocalTableHandler implements TableHandler {
 
-    @Context
-    RoutingContext context;
-
     @ConfigProperty(name = "fr.su.servers.ips")
     List<String> ips;
 
@@ -36,7 +33,7 @@ public class LocalTableHandler implements TableHandler {
     int blocsSize;
 
     @Override
-    public void createTable(TableBody tableBody) {
+    public void createTable(TableBody tableBody, String server_id) {
         Database database = Database.getInstance();
         Table table = new Table(tableBody.getTableName());
 
@@ -44,7 +41,6 @@ public class LocalTableHandler implements TableHandler {
         int nbColumns = tableBody.getColumns().size();
         int nbIps = ips.size();
         int id = 0;
-        String server_id = context.request().params().get("server_id");
         if (server_id != null)
             id = Integer.parseInt(server_id);
         int nbFields = 0;

@@ -30,29 +30,29 @@ public class TableController {
     @Inject
     RemoteTableHandler remoteTableHandler;
 
+    @Inject
+    RoutingContext context;
+
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response table(TableBody tableBody, @QueryParam("Server-Signature") String serverSignature) throws IOException, InterruptedException {
+    public Response table(TableBody tableBody) throws IOException, InterruptedException {
         Instant start = Instant.now();
 
         if(Database.getInstance().getTables().containsKey(tableBody.tableName)) {
             return Response.status(401).entity(new ErrorResponse(tableBody.tableName, "Table with this name already exist!")).build();
         }
 
+        String server_id = context.queryParams().get("server_id");
         Thread thread = new Thread(() -> {
-            try {
-                remoteTableHandler.createTable(tableBody);
-            } catch (IOException | InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            localTableHandler.createTable(tableBody, server_id);
         });
         thread.start();
-        localTableHandler.createTable(tableBody);
+        remoteTableHandler.createTable(tableBody, null);
         thread.join();
 
         DetailsResponse response;
-        if (serverSignature != null) {
+        if (context.queryParams().get("Server-Signature") != null) {
             TableResponse tmp = new TableResponse(tableBody.tableName);
             for (Column column : Database.getInstance().getTables().get(tableBody.getTableName()).getColumns()) {
                 if (column.stored())
