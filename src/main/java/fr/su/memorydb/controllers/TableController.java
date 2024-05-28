@@ -39,10 +39,6 @@ public class TableController {
     public Response table(TableBody tableBody) throws IOException, InterruptedException {
         Instant start = Instant.now();
 
-        if(Database.getInstance().getTables().containsKey(tableBody.tableName)) {
-            return Response.status(401).entity(new ErrorResponse(tableBody.tableName, "Table with this name already exist!")).build();
-        }
-
         String server_id = context.queryParams().get("server_id");
         Thread thread = new Thread(() -> {
             localTableHandler.createTable(tableBody, server_id);
