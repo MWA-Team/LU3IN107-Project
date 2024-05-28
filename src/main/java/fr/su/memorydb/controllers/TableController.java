@@ -45,16 +45,11 @@ public class TableController {
         remoteTableHandler.createTable(tableBody, null);
         thread.join();
 
-        DetailsResponse response;
-        if (context.request().headers().get("Server-Signature") != null) {
-            TableResponse tmp = new TableResponse(tableBody.tableName);
-            for (Column column : Database.getInstance().getTables().get(tableBody.getTableName()).getColumns()) {
-                if (column.stored())
-                    tmp.addColumn(column);
-            }
-            response = tmp;
-        } else
-            response = new DetailsResponse(tableBody.tableName);
+        TableResponse response = new TableResponse(tableBody.tableName);
+        for (Column column : Database.getInstance().getTables().get(tableBody.getTableName()).getColumns()) {
+            if (column.stored())
+                response.addColumn(column);
+        }
 
         response.setStart(start);
 
