@@ -478,7 +478,7 @@ public class Column<T> {
     }
 
     public T[] getValues(int bloc) throws IOException {
-        if (bloc < values.size() && bloc > 0)
+        if (bloc < values.size() && bloc >= 0)
             return (T[]) valuesCompressor.uncompress(values.get(bloc));
         return null;
     }

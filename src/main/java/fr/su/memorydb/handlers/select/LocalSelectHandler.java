@@ -6,16 +6,20 @@ import fr.su.memorydb.database.Database;
 import fr.su.memorydb.handlers.select.response.SelectResponse;
 import fr.su.memorydb.utils.lambda.LambdaTypeConverter;
 import jakarta.inject.Singleton;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.*;
 
 @Singleton
 public class LocalSelectHandler implements SelectHandler {
 
+    @ConfigProperty(name = "fr.su.blocs.size")
+    int blocsSize;
+
     @Override
     public SelectResponse select(TableSelection.SelectBody selectBody) throws IOException {
+        int blocsSize = this.blocsSize > 0 ? this.blocsSize : 1048576;
         HashSet<Column> toShow = new HashSet<>();
         HashSet<Column> toEvaluate = new HashSet<>();
         LinkedList<int[]> evaluatedIndexes = new LinkedList<>();
@@ -67,17 +71,18 @@ public class LocalSelectHandler implements SelectHandler {
         }
 
         int start = indexes != null ? indexes[0] : 0;
-        int end = indexes != null ? indexes[indexes.length - 1] : Database.getInstance().getTables().get(selectBody.getTable()).rowsCounter;
         HashMap<Column, Object[]> values = new HashMap<>();
 
         // Building response
         if (indexes == null) {
+            int bloc = 0;
             for (int index = 0; index < Database.getInstance().getTables().get(selectBody.getTable()).rowsCounter; index++) {
-                filterIndexes(toShow, evaluatedIndexes, selectResponse, index);
+                bloc = selectIndex(blocsSize, toShow, evaluatedIndexes, selectResponse, values, bloc, index);
             }
         } else {
+            int bloc = 0;
             for (Integer index : indexes) {
-                filterIndexes(toShow, evaluatedIndexes, selectResponse, index);
+                bloc = selectIndex(blocsSize, toShow, evaluatedIndexes, selectResponse, values, bloc, index);
             }
         }
           
@@ -121,13 +126,12 @@ public class LocalSelectHandler implements SelectHandler {
             }
 
         }
-
-
         return selectResponse;
     }
 
-    private void filterIndexes(HashSet<Column> toShow, LinkedList<int[]> evaluatedIndexes, SelectResponse selectResponse, int index) throws IOException {
+    private int selectIndex(int blocsSize, HashSet<Column> toShow, LinkedList<int[]> evaluatedIndexes, SelectResponse selectResponse, HashMap<Column, Object[]> values, int bloc, int index) throws IOException {
         boolean pass = false;
+        int retval = bloc;
 
         for (int[] indexSet : evaluatedIndexes) {
             int found = Arrays.binarySearch(indexSet, index);
@@ -138,13 +142,19 @@ public class LocalSelectHandler implements SelectHandler {
         }
 
         if (!evaluatedIndexes.isEmpty() && pass)
-            return;
+            return retval;
 
         HashMap<String, Object> row = new HashMap<>();
         for (Column column : toShow) {
-            row.put(column.getName(), column.get(index));
+            if (index / blocsSize != bloc || values.get(column) == null) {
+                retval = index / blocsSize;
+                values.put(column, column.getValues(retval));
+            }
+            row.put(column.getName(), values.get(column)[index - retval * blocsSize]);
         }
+
         selectResponse.add(index, row);
+        return retval;
     }
 
 }
