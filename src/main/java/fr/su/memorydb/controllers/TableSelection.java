@@ -189,17 +189,14 @@ public class TableSelection {
         }
 
         public boolean hasCountAggregate() {
-
             return aggregate != null && aggregate.count != null;
         }
 
         public boolean hasMaxAggregate() {
-
             return aggregate != null && aggregate.max != null;
         }
 
         public boolean hasMinAggregate() {
-
             return aggregate != null && aggregate.min != null;
         }
 
