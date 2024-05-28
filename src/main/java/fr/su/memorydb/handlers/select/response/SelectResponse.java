@@ -2,29 +2,32 @@ package fr.su.memorydb.handlers.select.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import fr.su.memorydb.controllers.TableSelection;
-import fr.su.memorydb.handlers.ForwardingManager;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
+import fr.su.memorydb.utils.response.Response;
+import fr.su.memorydb.utils.response.ResponseTime;
 
-import java.net.InetAddress;
-import java.net.SocketException;
-import java.net.UnknownHostException;
+import java.time.Instant;
 import java.util.*;
-import java.util.stream.Collectors;
 
-public class SelectResponse {
+public class SelectResponse extends ResponseTime {
 
     @JsonProperty
     private HashMap<Integer, HashMap<String, Object>> rows = new HashMap<>();
 
-    public SelectResponse() {
+    public SelectResponse(String tableName) {
+        super(tableName);
         this.rows = new HashMap<>();
+    }
+
+    public SelectResponse(String tableName, Instant instant) {
+        super(tableName);
+        this.rows = new HashMap<>();
+        this.start = instant;
     }
 
     public SelectResponse merge(List<SelectResponse> responses, TableSelection.SelectBody selectBody) {
         if(responses == null || responses.isEmpty()) { return this; }
 
-        SelectResponse retval = new SelectResponse();
+        SelectResponse retval = new SelectResponse(selectBody.getTable(), this.start);
 
         if (rows.isEmpty())
             return retval;
