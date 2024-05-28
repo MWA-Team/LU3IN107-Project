@@ -15,7 +15,7 @@ public class RemoteInsertionHandler implements InsertionHandler {
     ForwardingManager forwardingManager;
 
     @Override
-    public int insert(File file, String table) throws IOException {
+    public int insert(File file, String table) throws IOException, InterruptedException {
         Response response = forwardingManager.forwardInsert(file);
         return response == null ? 200 : response.getStatus();
     }

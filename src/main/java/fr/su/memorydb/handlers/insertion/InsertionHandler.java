@@ -8,6 +8,6 @@ import java.io.IOException;
 
 public interface InsertionHandler {
 
-    public int insert(File file, String table) throws IOException, WrongTableFormatException, TableColumnSizeException;
+    public int insert(File file, String table) throws IOException, WrongTableFormatException, TableColumnSizeException, InterruptedException;
 
 }

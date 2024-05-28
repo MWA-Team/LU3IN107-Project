@@ -20,7 +20,7 @@ public class RemoteSelectHandler implements SelectHandler {
     ForwardingManager forwardingManager;
 
     @Override
-    public SelectResponse select(SelectBody selectBody) throws IOException {
+    public SelectResponse select(SelectBody selectBody) throws IOException, InterruptedException {
         ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
         String json = ow.writeValueAsString(selectBody);
         Response response = forwardingManager.forwardSelect(json);
