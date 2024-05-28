@@ -12,11 +12,9 @@ import fr.su.memorydb.utils.response.ErrorResponse;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
@@ -30,13 +28,16 @@ public class TableController {
     @Inject
     RemoteTableHandler remoteTableHandler;
 
+    @Inject
+    RoutingContext context;
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response table(TableBody tableBody, @HeaderParam("Server-Signature") String serverSignature, @QueryParam("server_id") String server_id) throws IOException, InterruptedException {
+    public Response table(TableBody tableBody) throws IOException, InterruptedException {
         Instant start = Instant.now();
 
+        String server_id = context.queryParams().get("server_id");
         Thread thread = new Thread(() -> {
             localTableHandler.createTable(tableBody, server_id);
         });
@@ -45,7 +46,7 @@ public class TableController {
         thread.join();
 
         DetailsResponse response;
-        if (serverSignature != null) {
+        if (context.queryParams().get("Server-Signature") != null) {
             TableResponse tmp = new TableResponse(tableBody.tableName);
             for (Column column : Database.getInstance().getTables().get(tableBody.getTableName()).getColumns()) {
                 if (column.stored())
