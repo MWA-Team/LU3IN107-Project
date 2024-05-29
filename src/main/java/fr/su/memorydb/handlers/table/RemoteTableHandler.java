@@ -5,9 +5,8 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import fr.su.memorydb.controllers.TableController.TableBody;
 import fr.su.memorydb.database.Column;
 import fr.su.memorydb.handlers.ForwardingManager;
-import fr.su.memorydb.handlers.table.response.TableResponse;
+import fr.su.memorydb.utils.response.TableResponse;
 import fr.su.memorydb.utils.ToolBox;
-import io.vertx.ext.web.RoutingContext;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.Response;
@@ -25,7 +24,7 @@ public class RemoteTableHandler implements TableHandler {
     ForwardingManager forwardingManager;
 
     @Override
-    public void createTable(TableBody tableBody, String server_id) throws IOException, InterruptedException {
+    public void createTable(TableBody tableBody) throws IOException, InterruptedException {
         ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
         String json = ow.writeValueAsString(tableBody);
         Response response = forwardingManager.forwardCreate(json);
@@ -42,8 +41,8 @@ public class RemoteTableHandler implements TableHandler {
         // Getting which Column is stored on which server
         for (Map.Entry<Integer, Response> entry : responses.entrySet()) {
             TableResponse tr = om.readValue(entry.getValue().readEntity(String.class), TableResponse.class);
-            for (Column column : tr.getColumns()) {
-                HashMap<Column, Integer> tmp = ToolBox.columnsRepartition.computeIfAbsent(tr.getTable(), k -> new HashMap<>());
+            for (String column : tr.getColumns()) {
+                HashMap<String, Integer> tmp = ToolBox.columnsRepartition.computeIfAbsent(tr.getTable(), k -> new HashMap<>());
                 tmp.put(column, entry.getKey());
             }
         }

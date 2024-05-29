@@ -7,6 +7,7 @@ import fr.su.memorydb.database.Database;
 import fr.su.memorydb.database.Table;
 import fr.su.memorydb.utils.ToolBox;
 import io.vertx.ext.web.RoutingContext;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.Context;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -17,32 +18,20 @@ import java.util.List;
 @Singleton
 public class LocalTableHandler implements TableHandler {
 
-    @ConfigProperty(name = "fr.su.servers.ips")
-    List<String> ips;
-
-    @ConfigProperty(name = "fr.su.enable.values-compression")
-    boolean enableValuesCompression;
-
-    @ConfigProperty(name = "fr.su.enable.indexes-compression")
-    boolean enableIndexesCompression;
-
-    @ConfigProperty(name = "fr.su.enable.indexing")
-    boolean enableIndexing;
-
-    @ConfigProperty(name = "fr.su.blocs.size")
-    int blocsSize;
+    @Inject
+    ToolBox toolBox;
 
     @Override
-    public void createTable(TableBody tableBody, String server_id) {
+    public void createTable(TableBody tableBody) {
         Database database = Database.getInstance();
         Table table = new Table(tableBody.getTableName());
 
         // This part decides which columns of the parquet file is stored in this server based on the list of ips
         int nbColumns = tableBody.getColumns().size();
-        int nbIps = ips.size();
+        int nbIps = toolBox.ips().length;
         int id = 0;
-        if (server_id != null)
-            id = Integer.parseInt(server_id);
+        if (toolBox.server_id() != null)
+            id = Integer.parseInt(toolBox.server_id());
         int nbFields = 0;
         int startingIndex = 0;
 
@@ -65,27 +54,27 @@ public class LocalTableHandler implements TableHandler {
             Column newColumn = null;
             switch (tableParameter.getType().toLowerCase()) {
                 case "boolean":
-                    newColumn = new Column<>(table, tableParameter.getName(), stored, blocsSize, Boolean.class, enableValuesCompression, enableIndexesCompression, enableIndexing);
+                    newColumn = new Column<>(table, tableParameter.getName(), stored, toolBox.blocsSize(), Boolean.class, toolBox.enableValuesCompression(), toolBox.enableIndexesCompression(), toolBox.enableIndexing());
                     break;
                 case "int32":
-                    newColumn = new Column<>(table, tableParameter.getName(), stored, blocsSize, Integer.class, enableValuesCompression, enableIndexesCompression, enableIndexing);
+                    newColumn = new Column<>(table, tableParameter.getName(), stored, toolBox.blocsSize(), Integer.class, toolBox.enableValuesCompression(), toolBox.enableIndexesCompression(), toolBox.enableIndexing());
                     break;
                 case "int64":
-                    newColumn = new Column<>(table, tableParameter.getName(), stored, blocsSize, Long.class, enableValuesCompression, enableIndexesCompression, enableIndexing);
+                    newColumn = new Column<>(table, tableParameter.getName(), stored, toolBox.blocsSize(), Long.class, toolBox.enableValuesCompression(), toolBox.enableIndexesCompression(), toolBox.enableIndexing());
                     break;
                 case "float":
-                    newColumn = new Column<>(table, tableParameter.getName(), stored, blocsSize, Float.class, enableValuesCompression, enableIndexesCompression, enableIndexing);
+                    newColumn = new Column<>(table, tableParameter.getName(), stored, toolBox.blocsSize(), Float.class, toolBox.enableValuesCompression(), toolBox.enableIndexesCompression(), toolBox.enableIndexing());
                     break;
                 case "double":
-                    newColumn = new Column<>(table, tableParameter.getName(), stored, blocsSize, Double.class, enableValuesCompression, enableIndexesCompression, enableIndexing);
+                    newColumn = new Column<>(table, tableParameter.getName(), stored, toolBox.blocsSize(), Double.class, toolBox.enableValuesCompression(), toolBox.enableIndexesCompression(), toolBox.enableIndexing());
                     break;
                 default:
-                    newColumn = new Column<>(table, tableParameter.getName(), stored, blocsSize, String.class, enableValuesCompression, enableIndexesCompression, enableIndexing);
+                    newColumn = new Column<>(table, tableParameter.getName(), stored, toolBox.blocsSize(), String.class, toolBox.enableValuesCompression(), toolBox.enableIndexesCompression(), toolBox.enableIndexing());
             }
             table.addColumn(newColumn);
             if (stored) {
-                HashMap<Column, Integer> tmp = ToolBox.columnsRepartition.computeIfAbsent(tableBody.getTableName(), k -> new HashMap<>());
-                tmp.put(newColumn, id);
+                HashMap<String, Integer> tmp = ToolBox.columnsRepartition.computeIfAbsent(tableBody.getTableName(), k -> new HashMap<>());
+                tmp.put(newColumn.getName(), id);
             }
         }
 

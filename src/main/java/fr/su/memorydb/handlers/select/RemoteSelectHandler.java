@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import fr.su.memorydb.controllers.TableSelection.SelectBody;
 import fr.su.memorydb.handlers.ForwardingManager;
-import fr.su.memorydb.handlers.select.response.SelectResponse;
+import fr.su.memorydb.utils.response.SelectResponse;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.Response;
