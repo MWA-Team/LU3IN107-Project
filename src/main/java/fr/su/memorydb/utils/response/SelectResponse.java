@@ -3,10 +3,9 @@ package fr.su.memorydb.utils.response;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import fr.su.memorydb.controllers.TableSelection;
 
-import java.time.Instant;
 import java.util.*;
 
-public class SelectResponse extends Response {
+public class SelectResponse extends ValidResponse {
 
     @JsonProperty
     private HashMap<Integer, HashMap<String, Object>> rows = new HashMap<>();
@@ -16,16 +15,10 @@ public class SelectResponse extends Response {
         this.rows = new HashMap<>();
     }
 
-    public SelectResponse(String tableName, Instant instant) {
-        super(tableName);
-        this.rows = new HashMap<>();
-        this.start = instant;
-    }
-
     public SelectResponse merge(List<SelectResponse> responses, TableSelection.SelectBody selectBody) {
         if(responses == null || responses.isEmpty()) { return this; }
 
-        SelectResponse retval = new SelectResponse(selectBody.getTable(), this.start);
+        SelectResponse retval = new SelectResponse(selectBody.getTable());
 
         if (rows.isEmpty())
             return retval;

@@ -6,7 +6,7 @@ import fr.su.memorydb.database.Column;
 import java.util.LinkedList;
 import java.util.List;
 
-public class TableResponse extends Response {
+public class TableResponse extends ValidResponse {
 
     @JsonProperty
     private List<String> columns;
