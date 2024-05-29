@@ -2,6 +2,7 @@ package fr.su.memorydb.handlers.table;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import fr.su.memorydb.controllers.TableController.TableBody;
 import fr.su.memorydb.database.Column;
 import fr.su.memorydb.handlers.ForwardingManager;
@@ -37,6 +38,7 @@ public class RemoteTableHandler implements TableHandler {
             return;
 
         ObjectMapper om = new ObjectMapper();
+        om.registerModule(new JavaTimeModule());
         // Getting which Column is stored on which server
         for (Map.Entry<Integer, Response> entry : responses.entrySet()) {
             TableResponse tr = om.readValue(entry.getValue().readEntity(String.class), TableResponse.class);
