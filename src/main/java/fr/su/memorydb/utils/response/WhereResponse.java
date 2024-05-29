@@ -34,15 +34,15 @@ public class WhereResponse {
         this.indexes = indexes;
     }
 
-    public int[] mergeIndexes(List<WhereResponse> responses) throws InterruptedException {
+    public int[] mergeIndexes(List<int[]> responses) throws InterruptedException {
         if (responses == null || responses.isEmpty())
             return this.indexes;
 
         List<Integer> mergedIndexes = new LinkedList<>();
         for (int index : indexes) {
             boolean pass = false;
-            for (WhereResponse response : responses) {
-                int found = Arrays.binarySearch(response.indexes, index);
+            for (int[] tmp : responses) {
+                int found = Arrays.binarySearch(tmp, index);
                 if (found < 0) {
                     pass = true;
                     break;

@@ -41,20 +41,22 @@ public class RemoteSelectHandler implements SelectHandler {
             if (responses.isEmpty())
                 return null;
 
-            List<WhereResponse> retval = new LinkedList<>();
+            List<int[]> retval = new LinkedList<>();
             ObjectMapper om = new ObjectMapper();
             for (Map.Entry<Integer, Response> entry : responses.entrySet()) {
                 if (entry.getValue().getStatus() != 200)
                     continue;
                 String t = entry.getValue().readEntity(String.class);
-                retval.add(om.readValue(t, WhereResponse.class));
+                retval.add(om.readValue(t, WhereResponse.class).getIndexes());
             }
 
             if (retval.isEmpty())
                 return null;
 
-            WhereResponse last = retval.remove(retval.size() - 1);
-            return last.mergeIndexes(retval);
+            int[] last = retval.remove(retval.size() - 1);
+            WhereResponse tmp = new WhereResponse();
+            tmp.setIndexes(last);
+            return tmp.mergeIndexes(retval);
         } catch (InterruptedException | IOException e) {
             throw new RuntimeException(e);
         }
