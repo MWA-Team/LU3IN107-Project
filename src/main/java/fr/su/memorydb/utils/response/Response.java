@@ -20,6 +20,8 @@ public abstract class Response {
     @JsonProperty
     private Duration duration;
 
+    public Response() {}
+
     public Response(String table) {
         this.table = table;
         this.start = Instant.now();
