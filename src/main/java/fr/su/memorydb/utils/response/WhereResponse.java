@@ -42,6 +42,9 @@ public class WhereResponse {
         for (int index : indexes) {
             boolean pass = false;
             for (int[] tmp : responses) {
+                if (tmp == null)
+                    continue;
+                
                 int found = Arrays.binarySearch(tmp, index);
                 if (found < 0) {
                     pass = true;
