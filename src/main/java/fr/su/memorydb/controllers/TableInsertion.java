@@ -29,7 +29,7 @@ public class TableInsertion {
     public Response insertion(@QueryParam("table") String tableName, File file) {
         Table table = Database.getInstance().getTables().get(tableName);
         if (table == null) {
-            return Response.status(404).entity(new ErrorResponse(tableName, "Table '" + tableName + "' not found.")).build();
+            return Response.status(404).entity(new ErrorResponse(tableName, "Table '" + tableName + "' not found.").done()).build();
         }
 
         InsertResponse response = new InsertResponse(tableName);
@@ -45,7 +45,7 @@ public class TableInsertion {
             }
         } catch (WrongTableFormatException e) {
             e.printStackTrace();
-            return Response.status(500).entity(new ErrorResponse(tableName, e.getMessage())).build();
+            return Response.status(500).entity(new ErrorResponse(tableName, e.getMessage()).done()).build();
         } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (InterruptedException e) {
