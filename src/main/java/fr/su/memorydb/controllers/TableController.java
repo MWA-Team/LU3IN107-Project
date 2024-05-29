@@ -5,6 +5,7 @@ import fr.su.memorydb.database.Column;
 import fr.su.memorydb.database.Database;
 import fr.su.memorydb.handlers.table.LocalTableHandler;
 import fr.su.memorydb.handlers.table.RemoteTableHandler;
+import fr.su.memorydb.utils.response.ErrorResponse;
 import fr.su.memorydb.utils.response.TableResponse;
 import fr.su.memorydb.utils.ToolBox;
 import io.vertx.ext.web.RoutingContext;
@@ -16,6 +17,8 @@ import jakarta.ws.rs.core.Response;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 @Path("table")
@@ -30,18 +33,20 @@ public class TableController {
     @Context
     RoutingContext routingContext;
 
-    @Inject
-    ToolBox toolBox;
-
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response table(TableBody tableBody) throws IOException, InterruptedException {
         Instant start = Instant.now();
 
+        if(Database.getInstance().getTables().containsKey(tableBody.tableName)) {
+            return Response.status(401).entity(new ErrorResponse(tableBody.tableName, "Table with this name already exist!").setStart(start).done()).build();
+        }
+
         ToolBox.Context context = new ToolBox.Context(routingContext.request().uri(), routingContext.queryParams().get("server_id"), routingContext.request().headers().get("Server-Signature"));
 
-        toolBox.setContext(context);
+        ToolBox.setContext(context);
+        ToolBox.columnsRepartition.computeIfAbsent(tableBody.getTableName(), k -> new HashMap<>());
 
         Thread thread = new Thread(() -> {
             try {
