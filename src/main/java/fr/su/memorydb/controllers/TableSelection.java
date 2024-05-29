@@ -41,7 +41,7 @@ public class TableSelection{
         Database database = Database.getInstance();
         Table table = database.getTables().get(selectBody.table);
         if (table == null) {
-            return Response.status(404).entity(new ErrorResponse(selectBody.table, "Table '" + selectBody.table + "' not found.")).build();
+            return Response.status(404).entity(new ErrorResponse(selectBody.table, "Table '" + selectBody.table + "' not found.").done()).build();
         }
 
         if(selectBody.requesterIp == null) {
