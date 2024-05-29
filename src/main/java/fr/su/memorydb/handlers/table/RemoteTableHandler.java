@@ -37,12 +37,11 @@ public class RemoteTableHandler implements TableHandler {
             return;
 
         ObjectMapper om = new ObjectMapper();
-        List<TableResponse> retval = new LinkedList<>();
         // Getting which Column is stored on which server
         for (Map.Entry<Integer, Response> entry : responses.entrySet()) {
             TableResponse tr = om.readValue(entry.getValue().readEntity(String.class), TableResponse.class);
             for (String column : tr.getColumns()) {
-                HashMap<String, Integer> tmp = ToolBox.columnsRepartition.computeIfAbsent(tr.getTable(), k -> new HashMap<>());
+                HashMap<String, Integer> tmp = ToolBox.columnsRepartition.get(tr.getTable());
                 tmp.put(column, entry.getKey());
             }
         }
