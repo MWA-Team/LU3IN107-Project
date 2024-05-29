@@ -45,7 +45,6 @@ public class TableController {
         }
 
         ToolBox.Context context = new ToolBox.Context(routingContext.request().uri(), routingContext.queryParams().get("server_id"), routingContext.request().headers().get("Server-Signature"));
-
         ToolBox.setContext(context);
         ToolBox.columnsRepartition.computeIfAbsent(tableBody.getTableName(), k -> new HashMap<>());
 

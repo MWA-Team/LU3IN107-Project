@@ -4,11 +4,14 @@ import fr.su.memorydb.database.Database;
 import fr.su.memorydb.database.Table;
 import fr.su.memorydb.handlers.insertion.LocalInsertionHandler;
 import fr.su.memorydb.handlers.insertion.RemoteInsertionHandler;
+import fr.su.memorydb.utils.ToolBox;
 import fr.su.memorydb.utils.response.InsertResponse;
 import fr.su.memorydb.utils.exceptions.WrongTableFormatException;
 import fr.su.memorydb.utils.response.ErrorResponse;
+import io.vertx.ext.web.RoutingContext;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -25,31 +28,40 @@ public class TableInsertion {
     @Inject
     RemoteInsertionHandler remoteInsertionHandler;
 
+    @Context
+    RoutingContext routingContext;
+
     @POST
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     public Response insertion(@QueryParam("table") String tableName, File file) {
         Instant start = Instant.now();
+
         Table table = Database.getInstance().getTables().get(tableName);
+
         if (table == null) {
             return Response.status(404).entity(new ErrorResponse(tableName, "Table '" + tableName + "' not found.").setStart(start).done()).build();
         }
 
+        ToolBox.Context context = new ToolBox.Context(routingContext.request().uri(), routingContext.queryParams().get("server_id"), routingContext.request().headers().get("Server-Signature"));
+        ToolBox.setContext(context);
+
         InsertResponse response = new InsertResponse(tableName);
         try {
-            int responseCode = 200;
+            Thread thread = new Thread(() -> {
+                try {
+                    remoteInsertionHandler.insert(file, tableName);
+                } catch (IOException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            thread.start();
             localInsertionHandler.insert(file, tableName);
-            remoteInsertionHandler.insert(file, tableName);
-            if (responseCode == 200) {
-                response.setRows(table.rowsCounter);
-                return Response.status(200).entity(response.details("Insertion successful !").setStart(start).done()).type(MediaType.APPLICATION_JSON).build();
-            } else {
-                return Response.status(500).entity(new ErrorResponse(tableName, "Internal Server Error 500 !").setStart(start).done()).type(MediaType.APPLICATION_JSON).build();
-            }
+            thread.join();
+            response.setRows(table.rowsCounter);
+            return Response.status(200).entity(response.details("Insertion successful !").setStart(start).done()).type(MediaType.APPLICATION_JSON).build();
         } catch (WrongTableFormatException e) {
             e.printStackTrace();
             return Response.status(500).entity(new ErrorResponse(tableName, e.getMessage()).setStart(start).done()).build();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

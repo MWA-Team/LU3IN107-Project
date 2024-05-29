@@ -54,14 +54,26 @@ public class ForwardingManager {
     }
 
     /**
-     * This function is used to forward a GET query to the other servers on the distributed system.
+     * This function is used to forward a GET query to the other servers on the distributed system in order to get filtered indexes by a "where".
      * @param body
      * @return Object
      * @throws IOException
      */
-    public Response forwardSelect(String body) throws IOException, InterruptedException {
+    public Response forwardWhere(String body) throws IOException, InterruptedException {
         return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
-            return proxy.select(signature, id, data.toString());
+            return proxy.where(signature, id, data.toString());
+        });
+    }
+
+    /**
+     * This function is used to forward a GET query to the other servers on the distributed system in order to get all rows filtered by an array of indexes.
+     * @param body
+     * @return Object
+     * @throws IOException
+     */
+    public Response forwardRows(String body) throws IOException, InterruptedException {
+        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
+            return proxy.rows(signature, id, data.toString());
         });
     }
 

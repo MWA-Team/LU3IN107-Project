@@ -3,8 +3,11 @@ package fr.su.memorydb.handlers.select;
 import fr.su.memorydb.controllers.TableSelection;
 import fr.su.memorydb.database.Column;
 import fr.su.memorydb.database.Database;
+import fr.su.memorydb.database.Table;
+import fr.su.memorydb.utils.ToolBox;
 import fr.su.memorydb.utils.response.SelectResponse;
 import fr.su.memorydb.utils.lambda.LambdaTypeConverter;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -14,12 +17,62 @@ import java.util.*;
 @Singleton
 public class LocalSelectHandler implements SelectHandler {
 
-    @ConfigProperty(name = "fr.su.blocs.size")
-    int blocsSize;
+    @Inject
+    ToolBox toolBox;
 
     @Override
-    public SelectResponse select(TableSelection.SelectBody selectBody) throws IOException, InterruptedException {
-        int blocsSize = this.blocsSize > 0 ? this.blocsSize : 1048576;
+    public int[] where(TableSelection.WhereBody whereBody) {
+        Table table = Database.getInstance().getTables().get(whereBody.getTable());
+        List<int[]> evaluatedIndexes = new LinkedList<>();
+
+        for(Column column : table.getColumns()) {
+            if (!column.stored() || !whereBody.getWhere().containsKey(column.getName()))
+                continue;
+
+            LambdaTypeConverter converter = column.getConverter();
+            TableSelection.SelectOperand condition = whereBody.getWhere().get(column.getName());
+            TableSelection.Operand operand = condition.getOperand();
+            Object compare = condition.getValue();
+
+            if (operand.equals(TableSelection.Operand.EQUALS)) {
+                try {
+                    int[] indexes = column.get(converter.call((String) compare));
+                    evaluatedIndexes.add(indexes);
+                } catch (IOException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        // No where on this server
+        if (evaluatedIndexes.isEmpty())
+            return null;
+
+        int length = 0;
+        for (int[] indexes : evaluatedIndexes) {
+            if (indexes != null)
+                length += indexes.length;
+        }
+
+        if (length == 0)
+            return new int[0];
+
+        int[] result = new int[length];
+        int lastIndex = 0;
+        for (int[] indexes : evaluatedIndexes) {
+            if (indexes == null)
+                continue;
+
+            for (int index : indexes)
+                result[lastIndex++] = index;
+        }
+
+        return result;
+    }
+
+    @Override
+    public SelectResponse select(TableSelection.SelectBody selectBody, int[] indexes) throws IOException, InterruptedException {
+        /*int blocsSize = this.blocsSize > 0 ? this.blocsSize : 1048576;
         HashSet<Column> toShow = new HashSet<>();
         HashSet<Column> toEvaluate = new HashSet<>();
         LinkedList<int[]> evaluatedIndexes = new LinkedList<>();
@@ -125,7 +178,8 @@ public class LocalSelectHandler implements SelectHandler {
             }
 
         }
-        return selectResponse;
+        return selectResponse;*/
+        return null;
     }
 
     private int selectIndex(int blocsSize, HashSet<Column> toShow, LinkedList<int[]> evaluatedIndexes, SelectResponse selectResponse, HashMap<Column, Object[]> values, int bloc, int index) throws IOException {
