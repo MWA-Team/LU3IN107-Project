@@ -71,6 +71,11 @@ public class TableSelection {
         WhereResponse response = new WhereResponse(whereBody.table, null);
         if (localIndexes != null) {
             response.setIndexes(localIndexes);
+            if (remoteIndexes[0] != null) {
+                List<int[]> tmp = new ArrayList<>(1);
+                tmp.add(remoteIndexes[0]);
+                response.setIndexes(response.mergeIndexes(tmp));
+            }
         } else if (remoteIndexes[0] != null)
             response.setIndexes(remoteIndexes[0]);
 
