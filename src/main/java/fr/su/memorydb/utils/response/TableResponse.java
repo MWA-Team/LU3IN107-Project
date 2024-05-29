@@ -11,6 +11,10 @@ public class TableResponse extends Response {
     @JsonProperty
     private List<String> columns;
 
+    public TableResponse() {
+        super();
+    }
+
     public TableResponse(String tableName) {
         super(tableName);
         columns = new LinkedList<>();
