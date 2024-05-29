@@ -20,6 +20,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Path("table")
 public class TableController {
@@ -60,9 +61,8 @@ public class TableController {
         thread.join();
 
         TableResponse response = new TableResponse(tableBody.tableName);
-        for (Column column : Database.getInstance().getTables().get(tableBody.getTableName()).getColumns()) {
-            if (column.stored())
-                response.addColumn(column.getName());
+        for (Map.Entry<String, Integer> entry : ToolBox.columnsRepartition.get(tableBody.getTableName()).entrySet()) {
+            response.addColumn(entry.getKey());
         }
 
         response.setStart(start);
