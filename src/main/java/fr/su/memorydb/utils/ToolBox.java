@@ -69,6 +69,10 @@ public class ToolBox {
         return context.uri();
     }
 
+    public void setUri(String uri) {
+        context.uri = uri;
+    }
+
     public String server_id() {
         return context.server_id();
     }
