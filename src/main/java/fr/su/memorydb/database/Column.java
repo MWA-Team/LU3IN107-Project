@@ -370,6 +370,108 @@ public class Column<T> {
         return list.stream().mapToInt(Integer::intValue).toArray();
     }
 
+    public int[] getBigger(T val) throws IOException {
+        LinkedList<Integer> list = new LinkedList<>();
+
+        if (enableIndexing) {
+            for (HashMap<T, Object> bloc : rows) {
+                for (Map.Entry<T, Object> entry : bloc.entrySet()) {
+                    if (entry.getKey() instanceof Comparable && val instanceof Comparable) {
+                        Comparable<T> comparableKey = (Comparable<T>) entry.getKey();
+                        if (comparableKey.compareTo(val) > 0) {
+                            // Decompressing indexes
+                            Object tmp = indexesCompressor.uncompress(entry.getValue());
+                            for (int j = 0; j < Array.getLength(tmp); j++) {
+                                list.add((Integer) Array.get(tmp, j));
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            // Might need to improve this part for more efficient search with threads perhaps
+            int index = 0;
+            for (Object bloc : values) {
+                Object tmpArray = valuesCompressor.uncompress(bloc);
+                for (int j = 0; j < Array.getLength(tmpArray); j++) {
+                    Object tmp = Array.get(tmpArray, j);
+                    if (tmp != null && ((Comparable<T>) tmp).compareTo(val) > 0)
+                        list.add(index);
+                    index++;
+                }
+            }
+        }
+
+        return list.stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    public int[] getLower(T val) throws IOException {
+        LinkedList<Integer> list = new LinkedList<>();
+
+        if (enableIndexing) {
+            for (HashMap<T, Object> bloc : rows) {
+                for (Map.Entry<T, Object> entry : bloc.entrySet()) {
+                    if (entry.getKey() instanceof Comparable && val instanceof Comparable) {
+                        Comparable<T> comparableKey = (Comparable<T>) entry.getKey();
+                        if (comparableKey.compareTo(val) < 0) {
+                            // Decompressing indexes
+                            Object tmp = indexesCompressor.uncompress(entry.getValue());
+                            for (int j = 0; j < Array.getLength(tmp); j++) {
+                                list.add((Integer) Array.get(tmp, j));
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            // Might need to improve this part for more efficient search with threads perhaps
+            int index = 0;
+            for (Object bloc : values) {
+                Object tmpArray = valuesCompressor.uncompress(bloc);
+                for (int j = 0; j < Array.getLength(tmpArray); j++) {
+                    Object tmp = Array.get(tmpArray, j);
+                    if (tmp != null && ((Comparable<T>) tmp).compareTo(val) < 0)
+                        list.add(index);
+                    index++;
+                }
+            }
+        }
+
+        return list.stream().mapToInt(Integer::intValue).toArray();
+    }
+
+    public int[] getNotEquals(T val) throws IOException {
+        LinkedList<Integer> list = new LinkedList<>();
+
+        if (enableIndexing) {
+            for (HashMap<T, Object> bloc : rows) {
+                for (Map.Entry<T, Object> entry : bloc.entrySet()) {
+                    if (!entry.getKey().equals(val)) {
+                        // Decompressing indexes
+                        Object tmp = indexesCompressor.uncompress(entry.getValue());
+                        for (int j = 0; j < Array.getLength(tmp); j++) {
+                            list.add((Integer) Array.get(tmp, j));
+                        }
+                    }
+                }
+            }
+        } else {
+            // Might need to improve this part for more efficient search with threads perhaps
+            int index = 0;
+            for (Object bloc : values) {
+                Object tmpArray = valuesCompressor.uncompress(bloc);
+                for (int j = 0; j < Array.getLength(tmpArray); j++) {
+                    Object tmp = Array.get(tmpArray, j);
+                    if (tmp != null && !tmp.equals(val))
+                        list.add(index);
+                    index++;
+                }
+            }
+        }
+
+        return list.stream().mapToInt(Integer::intValue).toArray();
+    }
+
     public T[] getValues(int start, int end) throws IOException {
         LinkedList<T> retval = new LinkedList<>();
         int count = 0;

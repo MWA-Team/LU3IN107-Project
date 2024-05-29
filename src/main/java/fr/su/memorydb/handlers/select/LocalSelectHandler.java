@@ -41,10 +41,27 @@ public class LocalSelectHandler implements SelectHandler {
             Object compare = selectBody.getWhere().get(column.getName()).getValue();
             TableSelection.Operand operand = selectBody.getWhere().get(column.getName()).getOperand();
 
-            if (operand.equals(TableSelection.Operand.EQUALS)) {
-                int[] indexes = column.get(converter.call((String) compare));
-                if (indexes != null)
-                    evaluatedIndexes.add(indexes);
+            switch (operand) {
+                case EQUALS:
+                    int[] indexesEquals = column.get(converter.call((String) compare));
+                    if (indexesEquals != null)
+                        evaluatedIndexes.add(indexesEquals);
+                    break;
+                case BIGGER:
+                    int[] indexesBigger = column.getBigger(converter.call((String) compare));
+                    if (indexesBigger != null)
+                        evaluatedIndexes.add(indexesBigger);
+                    break;
+                case LOWER:
+                    int[] indexesLower = column.getLower(converter.call((String) compare));
+                    if (indexesLower != null)
+                        evaluatedIndexes.add(indexesLower);
+                    break;
+                case NOT_EQUALS:
+                    int[] indexesNotEquals = column.getNotEquals(converter.call((String) compare));
+                    if (indexesNotEquals != null)
+                        evaluatedIndexes.add(indexesNotEquals);
+                    break;
             }
         }
 
