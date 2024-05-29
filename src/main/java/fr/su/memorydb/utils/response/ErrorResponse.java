@@ -11,4 +11,5 @@ public class ErrorResponse extends Response {
         super(table);
         this.error = error;
     }
+
 }

@@ -5,13 +5,12 @@ import fr.su.memorydb.database.Column;
 import fr.su.memorydb.database.Database;
 import fr.su.memorydb.handlers.table.LocalTableHandler;
 import fr.su.memorydb.handlers.table.RemoteTableHandler;
-import fr.su.memorydb.handlers.table.response.TableResponse;
+import fr.su.memorydb.utils.response.TableResponse;
 import fr.su.memorydb.utils.ToolBox;
-import fr.su.memorydb.utils.response.DetailsResponse;
-import fr.su.memorydb.utils.response.ErrorResponse;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -28,8 +27,11 @@ public class TableController {
     @Inject
     RemoteTableHandler remoteTableHandler;
 
+    @Context
+    RoutingContext routingContext;
+
     @Inject
-    RoutingContext context;
+    ToolBox toolBox;
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
@@ -37,18 +39,25 @@ public class TableController {
     public Response table(TableBody tableBody) throws IOException, InterruptedException {
         Instant start = Instant.now();
 
-        String server_id = context.queryParams().get("server_id");
+        ToolBox.Context context = new ToolBox.Context(routingContext.request().uri(), routingContext.queryParams().get("server_id"), routingContext.request().headers().get("Server-Signature"));
+
+        toolBox.setContext(context);
+
         Thread thread = new Thread(() -> {
-            localTableHandler.createTable(tableBody, server_id);
+            try {
+                remoteTableHandler.createTable(tableBody);
+            } catch (IOException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         });
         thread.start();
-        remoteTableHandler.createTable(tableBody, null);
+        localTableHandler.createTable(tableBody);
         thread.join();
 
         TableResponse response = new TableResponse(tableBody.tableName);
         for (Column column : Database.getInstance().getTables().get(tableBody.getTableName()).getColumns()) {
             if (column.stored())
-                response.addColumn(column);
+                response.addColumn(column.getName());
         }
 
         response.setStart(start);

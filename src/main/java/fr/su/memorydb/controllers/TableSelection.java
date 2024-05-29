@@ -6,7 +6,7 @@ import fr.su.memorydb.database.Table;
 import fr.su.memorydb.handlers.ForwardingManager;
 import fr.su.memorydb.handlers.select.LocalSelectHandler;
 import fr.su.memorydb.handlers.select.RemoteSelectHandler;
-import fr.su.memorydb.handlers.select.response.SelectResponse;
+import fr.su.memorydb.utils.response.SelectResponse;
 import fr.su.memorydb.utils.response.ErrorResponse;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
@@ -14,7 +14,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.io.IOException;
-import java.net.InetAddress;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;

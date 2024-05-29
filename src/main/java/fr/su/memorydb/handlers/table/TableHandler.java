@@ -7,6 +7,6 @@ import java.io.IOException;
 
 public interface TableHandler {
 
-    void createTable(TableController.TableBody tableBody, String server_id) throws IOException, InterruptedException;
+    void createTable(TableController.TableBody tableBody) throws IOException, InterruptedException;
 
 }

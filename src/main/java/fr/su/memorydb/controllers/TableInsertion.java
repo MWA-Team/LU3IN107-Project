@@ -4,7 +4,7 @@ import fr.su.memorydb.database.Database;
 import fr.su.memorydb.database.Table;
 import fr.su.memorydb.handlers.insertion.LocalInsertionHandler;
 import fr.su.memorydb.handlers.insertion.RemoteInsertionHandler;
-import fr.su.memorydb.handlers.insertion.response.InsertResponse;
+import fr.su.memorydb.utils.response.InsertResponse;
 import fr.su.memorydb.utils.exceptions.WrongTableFormatException;
 import fr.su.memorydb.utils.response.ErrorResponse;
 import jakarta.inject.Inject;
@@ -14,8 +14,6 @@ import jakarta.ws.rs.core.Response;
 
 import java.io.File;
 import java.io.IOException;
-import java.time.Duration;
-import java.time.Instant;
 
 @Path("/insert")
 public class TableInsertion {

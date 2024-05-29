@@ -2,7 +2,7 @@ package fr.su.memorydb.handlers.select;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import fr.su.memorydb.controllers.TableSelection;
-import fr.su.memorydb.handlers.select.response.SelectResponse;
+import fr.su.memorydb.utils.response.SelectResponse;
 
 import java.io.IOException;
 

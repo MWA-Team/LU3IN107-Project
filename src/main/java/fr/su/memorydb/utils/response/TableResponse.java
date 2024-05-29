@@ -1,27 +1,26 @@
-package fr.su.memorydb.handlers.table.response;
+package fr.su.memorydb.utils.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import fr.su.memorydb.database.Column;
-import fr.su.memorydb.utils.response.DetailsResponse;
 
 import java.util.LinkedList;
 import java.util.List;
 
-public class TableResponse extends DetailsResponse {
+public class TableResponse extends Response {
 
     @JsonProperty
-    private List<Column> columns;
+    private List<String> columns;
 
     public TableResponse(String tableName) {
         super(tableName);
         columns = new LinkedList<>();
     }
 
-    public void addColumn(Column column) {
+    public void addColumn(String column) {
         columns.add(column);
     }
 
-    public List<Column> getColumns() {
+    public List<String> getColumns() {
         return columns;
     }
 
