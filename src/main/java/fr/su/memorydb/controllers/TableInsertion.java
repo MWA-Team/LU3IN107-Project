@@ -14,6 +14,7 @@ import jakarta.ws.rs.core.Response;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Instant;
 
 @Path("/insert")
 public class TableInsertion {
@@ -27,9 +28,10 @@ public class TableInsertion {
     @POST
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     public Response insertion(@QueryParam("table") String tableName, File file) {
+        Instant start = Instant.now();
         Table table = Database.getInstance().getTables().get(tableName);
         if (table == null) {
-            return Response.status(404).entity(new ErrorResponse(tableName, "Table '" + tableName + "' not found.").done()).build();
+            return Response.status(404).entity(new ErrorResponse(tableName, "Table '" + tableName + "' not found.").setStart(start).done()).build();
         }
 
         InsertResponse response = new InsertResponse(tableName);
@@ -39,13 +41,13 @@ public class TableInsertion {
             remoteInsertionHandler.insert(file, tableName);
             if (responseCode == 200) {
                 response.setRows(table.rowsCounter);
-                return Response.status(200).entity(response.done()).type(MediaType.APPLICATION_JSON).build();
+                return Response.status(200).entity(response.details("Insertion successful !").setStart(start).done()).type(MediaType.APPLICATION_JSON).build();
             } else {
-                return Response.status(500).type(MediaType.APPLICATION_JSON).build();
+                return Response.status(500).entity(new ErrorResponse(tableName, "Internal Server Error 500 !").setStart(start).done()).type(MediaType.APPLICATION_JSON).build();
             }
         } catch (WrongTableFormatException e) {
             e.printStackTrace();
-            return Response.status(500).entity(new ErrorResponse(tableName, e.getMessage()).done()).build();
+            return Response.status(500).entity(new ErrorResponse(tableName, e.getMessage()).setStart(start).done()).build();
         } catch (IOException e) {
             throw new RuntimeException(e);
         } catch (InterruptedException e) {
