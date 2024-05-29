@@ -1,14 +1,12 @@
-package fr.su.memorydb.handlers.select.response;
+package fr.su.memorydb.utils.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import fr.su.memorydb.controllers.TableSelection;
-import fr.su.memorydb.utils.response.Response;
-import fr.su.memorydb.utils.response.ResponseTime;
 
 import java.time.Instant;
 import java.util.*;
 
-public class SelectResponse extends ResponseTime {
+public class SelectResponse extends Response {
 
     @JsonProperty
     private HashMap<Integer, HashMap<String, Object>> rows = new HashMap<>();

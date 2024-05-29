@@ -3,7 +3,7 @@ package fr.su.memorydb.handlers.select;
 import fr.su.memorydb.controllers.TableSelection;
 import fr.su.memorydb.database.Column;
 import fr.su.memorydb.database.Database;
-import fr.su.memorydb.handlers.select.response.SelectResponse;
+import fr.su.memorydb.utils.response.SelectResponse;
 import fr.su.memorydb.utils.lambda.LambdaTypeConverter;
 import jakarta.inject.Singleton;
 import org.eclipse.microprofile.config.inject.ConfigProperty;

@@ -1,12 +1,17 @@
 package fr.su.memorydb.handlers;
 
 import fr.su.memorydb.proxy.ForwardingProxy;
+import fr.su.memorydb.utils.ToolBox;
 import fr.su.memorydb.utils.lambda.ProxyLambda;
 
 import io.vertx.ext.web.RoutingContext;
+import jakarta.annotation.Nullable;
 import jakarta.enterprise.context.control.ActivateRequestContext;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.HeaderParam;
+import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
@@ -21,11 +26,8 @@ import java.util.*;
 @Singleton
 public class ForwardingManager {
 
-    @Context
-    RoutingContext context;
-
-    @ConfigProperty(name = "fr.su.servers.ips")
-    String[] ips;
+    @Inject
+    ToolBox toolBox;
 
     public ForwardingManager() {}
 
@@ -48,9 +50,7 @@ public class ForwardingManager {
      * @throws IOException
      */
     public Response forwardCreate(String body) throws IOException, InterruptedException {
-        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
-            return proxy.create(signature, id, data.toString());
-        });
+        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> proxy.create(signature, id, data.toString()));
     }
 
     /**
@@ -75,19 +75,18 @@ public class ForwardingManager {
      * @throws IOException
      */
     private Response forwardQuery(Object body, ProxyLambda lambda) throws IOException, InterruptedException {
+        String[] ips = toolBox.ips();
         /*
         All server use a header as a signature. If this signature isn't found, we can assume that a client made the query.
          */
-        String serverSignature = context.request().headers().get("Server-Signature");
-        if (serverSignature != null && !serverSignature.isEmpty()) {
+        if (toolBox.serverSignature() != null && !toolBox.serverSignature().isEmpty()) {
             return null;
         }
 
         int id = 1;
-        String localAddr = context.request().localAddress().hostAddress();
+        String localAddr = getLocalIp();
         List<Thread> threads = new ArrayList<>(ips.length - 1);
         HashMap<Integer, Response> responses = new HashMap<>();
-        String uri = context.request().uri();
         for (int i = 0; i < ips.length; i++) {
             String ip = ips[i];
             if (isLocalMachine(ip))
@@ -95,7 +94,7 @@ public class ForwardingManager {
 
             int finalId = id;
             Thread thread = new Thread(() -> {
-                URI newUri = URI.create("http://" + ip + ":8080" + uri);
+                URI newUri = URI.create("http://" + ip + ":8080" + toolBox.uri());
                 ForwardingProxy proxy = RestClientBuilder.newBuilder().baseUri(newUri).build(ForwardingProxy.class);
                 Response r = lambda.call(proxy, localAddr, Integer.toString(finalId), body);
                 responses.put(finalId, r);
@@ -132,7 +131,7 @@ public class ForwardingManager {
     }
 
     public String getLocalIp() throws SocketException {
-        for (String ip : ips) {
+        for (String ip : toolBox.ips()) {
             if (isLocalMachine(ip))
                 return ip;
         }
