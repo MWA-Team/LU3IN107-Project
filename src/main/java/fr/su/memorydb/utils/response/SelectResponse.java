@@ -66,10 +66,7 @@ public class SelectResponse extends ValidResponse {
     }
 
     public SelectResponse aggregate(TableSelection.SelectBody selectBody) {
-
-
         if(!selectBody.getRequesterIp().equals(selectBody.getCurrentIp())) {
-
             return this;
         }
 

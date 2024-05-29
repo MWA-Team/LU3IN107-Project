@@ -11,17 +11,22 @@ import java.io.File;
 public interface ForwardingProxy {
 
     @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    Response create(@HeaderParam ("Server-Signature") String signature, @QueryParam("server_id") String id, String body);
+
+    @POST
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     Response insert(@HeaderParam ("Server-Signature") String signature, @QueryParam("server_id") String id, File body);
 
     @GET
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    Response select(@HeaderParam ("Server-Signature") String signature, @QueryParam("server_id") String id, String body);
+    Response rows(@HeaderParam ("Server-Signature") String signature, @QueryParam("server_id") String id, String body);
 
-    @POST
+    @GET
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    Response create(@HeaderParam ("Server-Signature") String signature, @QueryParam("server_id") String id, String body);
+    Response where(@HeaderParam ("Server-Signature") String signature, @QueryParam("server_id") String id, String body);
 
 }
