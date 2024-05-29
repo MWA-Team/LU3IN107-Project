@@ -2,7 +2,7 @@ package fr.su.memorydb.utils.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class InsertResponse extends Response {
+public class InsertResponse extends ValidResponse {
 
     @JsonProperty
     private int rows;
