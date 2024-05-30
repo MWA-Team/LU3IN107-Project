@@ -1,9 +1,12 @@
 package fr.su.memorydb.handlers.select;
 
 import fr.su.memorydb.controllers.TableSelection;
+import fr.su.memorydb.utils.response.RowsResponse;
 import fr.su.memorydb.utils.response.SelectResponse;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
 
 public interface SelectHandler {
 
@@ -22,6 +25,6 @@ public interface SelectHandler {
      * @param indexes Array containing all the indexes we need to get
      * @return The final response containing all rows corresponding to the request
      */
-    SelectResponse select(TableSelection.SelectBody selectBody, int[] indexes) throws IOException, InterruptedException;
+    List<HashMap<String, Object>> select(TableSelection.SelectBody selectBody, int[] indexes) throws IOException, InterruptedException;
 
 }

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import fr.su.memorydb.controllers.TableSelection;
 import fr.su.memorydb.handlers.ForwardingManager;
 import fr.su.memorydb.utils.ToolBox;
+import fr.su.memorydb.utils.response.RowsResponse;
 import fr.su.memorydb.utils.response.SelectResponse;
 import fr.su.memorydb.utils.response.WhereResponse;
 import jakarta.inject.Inject;
@@ -53,17 +54,14 @@ public class RemoteSelectHandler implements SelectHandler {
             if (retval.isEmpty())
                 return null;
 
-            int[] last = retval.remove(retval.size() - 1);
-            WhereResponse tmp = new WhereResponse();
-            tmp.setIndexes(last);
-            return tmp.mergeIndexes(retval);
+            return WhereResponse.mergeIndexes(retval);
         } catch (InterruptedException | IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     @Override
-    public SelectResponse select(TableSelection.SelectBody selectBody, int[] indexes) throws IOException, InterruptedException {
+    public List<HashMap<String, Object>> select(TableSelection.SelectBody selectBody, int[] indexes) throws IOException, InterruptedException {
         /*ObjectWriter ow = new ObjectMapper().writer().withDefaultPrettyPrinter();
         String json = ow.writeValueAsString(selectBody);
         Response response = forwardingManager.forwardSelect(json);
