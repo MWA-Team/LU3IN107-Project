@@ -43,15 +43,19 @@ public class TableSelection {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response selectColumns(SelectBody selectBody) throws IOException, InterruptedException {
-        Instant instant = Instant.now();
+        Instant start = Instant.now();
 
         Table table = Database.getInstance().getTables().get(selectBody.table);
         if (table == null) {
-            return Response.status(404).entity(new ErrorResponse(selectBody.table, "Table '" + selectBody.table + "' not found.").done()).build();
+            return Response.status(404).entity(new ErrorResponse(selectBody.table, "Table '" + selectBody.table + "' not found.").setStart(start).done()).build();
         }
 
         ToolBox.Context context = new ToolBox.Context(routingContext.request().uri(), routingContext.queryParams().get("server_id"), routingContext.request().headers().get("Server-Signature"));
         ToolBox.setContext(context);
+
+        /**
+         *  GETTING INDEXES FILTERED WITH WHERE CONDITION
+         */
 
         WhereBody whereBody = new WhereBody(selectBody.table, selectBody.where);
 
@@ -67,19 +71,42 @@ public class TableSelection {
         int[] localIndexes = localSelectHandler.where(whereBody);
         thread.join();
 
-        // Change that, it's for the tests
-        WhereResponse response = new WhereResponse(whereBody.table, null);
-        if (localIndexes != null) {
-            response.setIndexes(localIndexes);
-            if (remoteIndexes[0] != null) {
-                List<int[]> tmp = new ArrayList<>(1);
-                tmp.add(remoteIndexes[0]);
-                response.setIndexes(response.mergeIndexes(tmp));
-            }
-        } else if (remoteIndexes[0] != null)
-            response.setIndexes(remoteIndexes[0]);
+        // Merging the indexes
+        List<int[]> tmpIndexes = new ArrayList<>(2);
+        tmpIndexes.add(localIndexes);
+        tmpIndexes.add(remoteIndexes[0]);
+        int[] indexes = WhereResponse.mergeIndexes(tmpIndexes);
 
-        return Response.status(200).entity(response).type(MediaType.APPLICATION_JSON).build();
+        /**
+         * GETTING THE ROWS FILTERED USING THE PREVIOUSLY GOTTEN INDEXES
+         */
+
+        // This is used by the forwarding manager to send request to the right endpoint
+        toolBox.setUri(toolBox.uri()+"/rows");
+
+        // This array is a solution to get the result of the thread operations as it can not initialize variables
+        List<HashMap<String, Object>>[] remoteRows = new List[1];
+        thread = new Thread(() -> {
+            try {
+                remoteRows[0] = remoteSelectHandler.select(selectBody, indexes);
+            } catch (IOException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        thread.start();
+        List<HashMap<String, Object>> localRows = localSelectHandler.select(selectBody, indexes);
+        thread.join();
+
+        // Merging the rows
+        List<List<HashMap<String, Object>>> tmpRows = new ArrayList<>(2);
+        tmpRows.add(localRows);
+        tmpRows.add(remoteRows[0]);
+
+        List<HashMap<String, Object>> rows = RowsResponse.mergeRows(tmpRows);
+
+        SelectResponse response = new SelectResponse(selectBody.table, rows);
+
+        return Response.status(200).entity(response.details("Select operation was successful !").setStart(start).done()).type(MediaType.APPLICATION_JSON).build();
 
         /*if(selectBody.requesterIp == null) {
             selectBody.requesterIp = forwardingManager.getLocalIp();
