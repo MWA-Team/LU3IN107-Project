@@ -5,6 +5,7 @@ import fr.su.memorydb.database.Column;
 import fr.su.memorydb.database.Database;
 import fr.su.memorydb.database.Table;
 import fr.su.memorydb.utils.ToolBox;
+import fr.su.memorydb.utils.response.RowsResponse;
 import fr.su.memorydb.utils.response.SelectResponse;
 import fr.su.memorydb.utils.lambda.LambdaTypeConverter;
 import jakarta.inject.Inject;
@@ -71,74 +72,54 @@ public class LocalSelectHandler implements SelectHandler {
     }
 
     @Override
-    public SelectResponse select(TableSelection.SelectBody selectBody, int[] indexes) throws IOException, InterruptedException {
-        /*int blocsSize = this.blocsSize > 0 ? this.blocsSize : 1048576;
-        HashSet<Column> toShow = new HashSet<>();
-        HashSet<Column> toEvaluate = new HashSet<>();
-        LinkedList<int[]> evaluatedIndexes = new LinkedList<>();
-        SelectResponse selectResponse = new SelectResponse(selectBody.getTable());
+    public List<HashMap<String, Object>> select(TableSelection.SelectBody selectBody, int[] indexes) throws IOException, InterruptedException {
+        Table table = Database.getInstance().getTables().get(selectBody.getTable());
+        boolean worked = false;
+        List<HashMap<String, Object>> rows = new ArrayList<>(indexes != null ? indexes.length : table.rowsCounter);
 
-        // Parsing which column to show and which column to evaluate (where clause)
+        // Parsing which row to select based on the indexes
         for(Column column : Database.getInstance().getTables().get(selectBody.getTable()).getColumns()) {
             if (column.stored()) {
-                if(selectBody.getWhere().containsKey(column.getName()))
-                    toEvaluate.add(column);
-                if (selectBody.getColumns().contains(column.getName()))
-                    toShow.add(column);
+                if (selectBody.getColumns().contains(column.getName())) {
+                    worked = true;
+                    int bloc = 0;
+                    Object[] values = column.getValues(bloc);
+                    HashMap<String, Object> row;
+                    if (indexes == null) {
+                        for (int i = 0; i < table.rowsCounter; i++) {
+                            if (rows.size() <= i) {
+                                row  = new HashMap<>();
+                                rows.add(row);
+                            } else {
+                                row = rows.get(i);
+                            }
+                            bloc = selectIndex(column, row, values, bloc, i);
+                        }
+                    } else {
+                        int i = 0;
+                        for (int index : indexes) {
+                            if (rows.size() <= i) {
+                                row  = new HashMap<>();
+                                rows.add(row);
+                            } else {
+                                row = rows.get(i);
+                            }
+                            bloc = selectIndex(column, row, values, bloc, index);
+                            i++;
+                        }
+                    }
+
+                }
             }
         }
 
         // If there is nothing to do on this server, return null
-        if (toShow.isEmpty() && toEvaluate.isEmpty())
+        if (!worked)
             return null;
 
-        // Getting all indexes that match their condition in the related columns
-        for (Column column : toEvaluate) {
-            LambdaTypeConverter converter = column.getConverter();
-            Object compare = selectBody.getWhere().get(column.getName()).getValue();
-            TableSelection.Operand operand = selectBody.getWhere().get(column.getName()).getOperand();
-
-            if (operand.equals(TableSelection.Operand.EQUALS)) {
-                int[] indexes = column.get(converter.call((String) compare));
-                if (indexes != null)
-                    evaluatedIndexes.add(indexes);
-            }
-        }
-
-        // If there was a filter on this server use evaluatedIndex, else return all indexes on all selected columns
-        if (evaluatedIndexes.isEmpty() && !toEvaluate.isEmpty())
-            return new SelectResponse(selectBody.getTable());
-
-        int[] indexes = null;
-        if (!evaluatedIndexes.isEmpty()) {
-            int min = -1;
-            int index = 0;
-            for (int i = 0; i < evaluatedIndexes.size(); i++) {
-                int len = evaluatedIndexes.get(i).length;
-                if (min > len || min == -1) {
-                    min = len;
-                    index = i;
-                }
-            }
-            int[] tmp = evaluatedIndexes.get(index);
-            indexes = tmp != null ? tmp : new int[0];
-        }
-
-        // Building response
-        HashMap<Column, Object[]> values = new HashMap<>();
-        if (indexes == null) {
-            int bloc = 0;
-            for (int index = 0; index < Database.getInstance().getTables().get(selectBody.getTable()).rowsCounter; index++) {
-                bloc = selectIndex(blocsSize, toShow, evaluatedIndexes, selectResponse, values, bloc, index);
-            }
-        } else {
-            int bloc = 0;
-            for (Integer index : indexes) {
-                bloc = selectIndex(blocsSize, toShow, evaluatedIndexes, selectResponse, values, bloc, index);
-            }
-        }
+        return rows;
           
-        //Managing group by : decrementing in negative numbers
+        /*//Managing group by : decrementing in negative numbers
         if(selectBody.hasGroupBy()) {
 
             int index = -1;
@@ -179,34 +160,18 @@ public class LocalSelectHandler implements SelectHandler {
 
         }
         return selectResponse;*/
-        return null;
     }
 
-    private int selectIndex(int blocsSize, HashSet<Column> toShow, LinkedList<int[]> evaluatedIndexes, SelectResponse selectResponse, HashMap<Column, Object[]> values, int bloc, int index) throws IOException {
-        boolean pass = false;
+    private int selectIndex(Column column, HashMap<String, Object> row, Object[] values, int bloc, int index) throws IOException {
         int retval = bloc;
 
-        for (int[] indexSet : evaluatedIndexes) {
-            int found = Arrays.binarySearch(indexSet, index);
-            if (found < 0) {
-                pass = true;
-                break;
-            }
+        if (index / ToolBox.realBlocsSize() != bloc) {
+            retval = index / ToolBox.realBlocsSize();
+            values = column.getValues(retval);
         }
 
-        if (!evaluatedIndexes.isEmpty() && pass)
-            return retval;
+        row.put(column.getName(), values[index - retval * ToolBox.realBlocsSize()]);
 
-        HashMap<String, Object> row = new HashMap<>();
-        for (Column column : toShow) {
-            if (index / blocsSize != bloc || values.get(column) == null) {
-                retval = index / blocsSize;
-                values.put(column, column.getValues(retval));
-            }
-            row.put(column.getName(), values.get(column)[index - retval * blocsSize]);
-        }
-
-        selectResponse.add(index, row);
         return retval;
     }
 

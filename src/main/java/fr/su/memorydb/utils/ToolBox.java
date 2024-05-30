@@ -26,8 +26,12 @@ public class ToolBox {
     @ConfigProperty(name = "fr.su.blocs.size")
     int blocsSize;
 
+    @ConfigProperty(name = "fr.su.indexing.threshold")
+    float indexingThreshold;
+
     public static HashMap<String, HashMap<String, Integer>> columnsRepartition = new HashMap<>();
     private static Context context = new Context();
+    private static int realBlocsSize = 0;
 
     public static class Context {
 
@@ -100,5 +104,11 @@ public class ToolBox {
     public int blocsSize() {
         return blocsSize;
     }
+
+    public float indexingThreshold() {return indexingThreshold;}
+
+    public static int realBlocsSize() {return realBlocsSize;}
+
+    public static void setRealBlocsSize(int realBlocsSize) {ToolBox.realBlocsSize = realBlocsSize;}
 
 }

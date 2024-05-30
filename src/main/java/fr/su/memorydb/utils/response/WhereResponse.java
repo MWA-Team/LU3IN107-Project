@@ -34,9 +34,14 @@ public class WhereResponse {
         this.indexes = indexes;
     }
 
-    public int[] mergeIndexes(List<int[]> responses) throws InterruptedException {
+    public static int[] mergeIndexes(List<int[]> responses) throws InterruptedException {
         if (responses == null || responses.isEmpty())
-            return this.indexes;
+            return null;
+
+        int[] indexes = null;
+        while (!responses.isEmpty() && indexes == null) {
+            indexes = responses.remove(0);
+        }
 
         List<Integer> mergedIndexes = new LinkedList<>();
         for (int index : indexes) {
@@ -44,7 +49,6 @@ public class WhereResponse {
             for (int[] tmp : responses) {
                 if (tmp == null)
                     continue;
-                
                 int found = Arrays.binarySearch(tmp, index);
                 if (found < 0) {
                     pass = true;
