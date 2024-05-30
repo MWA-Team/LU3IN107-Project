@@ -3,7 +3,9 @@ package fr.su.memorydb.handlers.insertion;
 import fr.su.memorydb.database.Column;
 import fr.su.memorydb.database.Database;
 import fr.su.memorydb.database.Table;
+import fr.su.memorydb.utils.ToolBox;
 import fr.su.memorydb.utils.exceptions.WrongTableFormatException;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -26,11 +28,8 @@ import java.util.*;
 @Singleton
 public class LocalInsertionHandler implements InsertionHandler {
 
-    @ConfigProperty(name = "fr.su.indexing.threshold")
-    float indexingThreshold;
-
-    @ConfigProperty(name = "fr.su.blocs.size")
-    int blocsSize;
+    @Inject
+    ToolBox toolBox;
 
     int nbMaxThreads = 8;
 
@@ -51,23 +50,25 @@ public class LocalInsertionHandler implements InsertionHandler {
             GroupRecordConverter groupRecordConverter = new GroupRecordConverter(schema);
 
             int blocsSize;
-            if (this.blocsSize <= 0) {
-                blocsSize = 1048576;
-                for (Column column : table.getColumns()) {
-                    column.setBlocsSize(blocsSize);
+            if (toolBox.blocsSize() <= 0) {
+                if (ToolBox.realBlocsSize() <= 0) {
+                    ToolBox.setRealBlocsSize(1048576);
                 }
-            } else
-                blocsSize = this.blocsSize;
+                for (Column column : table.getColumns()) {
+                    column.setBlocsSize(ToolBox.realBlocsSize());
+                }
+            } else if (ToolBox.realBlocsSize() <= 0)
+                ToolBox.setRealBlocsSize(toolBox.blocsSize());
 
             try (ParquetFileReader r = new ParquetFileReader(conf, absolutePath, readFooter)) {
                 PageReadStore pages = null;
 
-                int max = blocsSize;
+                int max = ToolBox.realBlocsSize();
                 for (Column column : table.getColumns()) {
                     if (!column.stored())
                         continue;
                     if (!column.isLastBlocIsFull()) {
-                        int tmp = (blocsSize - column.getLastBlocsSize()) + max;
+                        int tmp = (ToolBox.realBlocsSize() - column.getLastBlocsSize()) + max;
                         if (max < tmp)
                             max = tmp;
                         break;
@@ -93,8 +94,8 @@ public class LocalInsertionHandler implements InsertionHandler {
                         // Adding the bloc in the database
                         if (groups.size() == max) {
                             addBloc(groups, table, map);
-                            if (max != blocsSize) {
-                                max = blocsSize;
+                            if (max != ToolBox.realBlocsSize()) {
+                                max = ToolBox.realBlocsSize();
                                 groups = new ArrayList<>(max);
                             }
                             groups.clear();
@@ -155,7 +156,7 @@ public class LocalInsertionHandler implements InsertionHandler {
                     }
                 }
 
-                if (values != null && values.size() / ((float)table.rowsCounter) >= indexingThreshold)
+                if (values != null && values.size() / ((float)table.rowsCounter) >= toolBox.indexingThreshold())
                     c.disableIndexing();
 
                 try {

@@ -2,20 +2,27 @@ package fr.su.memorydb.utils.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import fr.su.memorydb.controllers.TableSelection;
+import jakarta.ws.rs.core.Link;
 
 import java.util.*;
 
 public class SelectResponse extends ValidResponse {
 
     @JsonProperty
-    private HashMap<Integer, HashMap<String, Object>> rows = new HashMap<>();
+    private List<HashMap<String, Object>> rows;
 
-    public SelectResponse(String tableName) {
+    public SelectResponse() {}
+
+    public SelectResponse(String tableName, List<HashMap<String, Object>> rows) {
         super(tableName);
-        this.rows = new HashMap<>();
+        this.rows = rows;
     }
 
-    public SelectResponse merge(List<SelectResponse> responses, TableSelection.SelectBody selectBody) {
+    public List<HashMap<String, Object>> getRows() {
+        return rows;
+    }
+
+    /*public SelectResponse merge(List<SelectResponse> responses, TableSelection.SelectBody selectBody) {
         if(responses == null || responses.isEmpty()) { return this; }
 
         SelectResponse retval = new SelectResponse(selectBody.getTable());
@@ -63,9 +70,9 @@ public class SelectResponse extends ValidResponse {
         }
 
         return retval;
-    }
+    }*/
 
-    public SelectResponse aggregate(TableSelection.SelectBody selectBody) {
+    /*public SelectResponse aggregate(TableSelection.SelectBody selectBody) {
         if(!selectBody.getRequesterIp().equals(selectBody.getCurrentIp())) {
             return this;
         }
@@ -136,18 +143,6 @@ public class SelectResponse extends ValidResponse {
             rows = finalRows;
         }
         return this;
-    }
+    }*/
 
-    public void add(int index, HashMap<String, Object> row) {
-        rows.put(index, row);
-    }
-
-    public void remove(HashMap<String, Object> key) {
-        rows.remove(key);
-    }
-
-    public boolean containIndex(int index) {
-
-        return rows.containsKey(index);
-    }
 }
