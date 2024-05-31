@@ -72,7 +72,7 @@ public class LocalSelectHandler implements SelectHandler {
     }
 
     @Override
-    public List<HashMap<String, Object>> select(TableSelection.SelectBody selectBody, int[] indexes) throws IOException, InterruptedException {
+    public List<HashMap<String, Object>> select(TableSelection.SelectBody selectBody, int[] indexes) throws IOException {
         Table table = Database.getInstance().getTables().get(selectBody.getTable());
         boolean worked = false;
         List<HashMap<String, Object>> rows = new ArrayList<>(indexes != null ? indexes.length : table.rowsCounter);
@@ -80,7 +80,7 @@ public class LocalSelectHandler implements SelectHandler {
         // Parsing which row to select based on the indexes
         for(Column column : Database.getInstance().getTables().get(selectBody.getTable()).getColumns()) {
             if (column.stored()) {
-                if (selectBody.getColumns().contains(column.getName())) {
+                if (selectBody.getColumns().contains(column.getName()) || (selectBody.getGroupBy() != null && selectBody.getGroupBy().contains(column.getName())) || (selectBody.getAggregate() != null && selectBody.getAggregate().isAggregated(column.getName()))) {
                     worked = true;
                     int bloc = 0;
                     Object[] values = column.getValues(bloc);
@@ -93,7 +93,11 @@ public class LocalSelectHandler implements SelectHandler {
                             } else {
                                 row = rows.get(i);
                             }
-                            bloc = selectIndex(column, row, values, bloc, i);
+                            int tmp = selectIndex(column, row, values, bloc, i);
+                            if (tmp != bloc) {
+                                values = column.getValues(tmp);
+                                bloc = tmp;
+                            }
                         }
                     } else {
                         int i = 0;
@@ -104,7 +108,11 @@ public class LocalSelectHandler implements SelectHandler {
                             } else {
                                 row = rows.get(i);
                             }
-                            bloc = selectIndex(column, row, values, bloc, index);
+                            int tmp = selectIndex(column, row, values, bloc, index);
+                            if (tmp != bloc) {
+                                values = column.getValues(tmp);
+                                bloc = tmp;
+                            }
                             i++;
                         }
                     }
@@ -118,48 +126,6 @@ public class LocalSelectHandler implements SelectHandler {
             return null;
 
         return rows;
-          
-        /*//Managing group by : decrementing in negative numbers
-        if(selectBody.hasGroupBy()) {
-
-            int index = -1;
-            String column = selectBody.getGroupBy();
-
-            Column clm = Database.getInstance().getTables().get(selectBody.getTable()).getColumn(column);
-            if (clm.stored()) {
-
-                List<HashMap<Object, Object>> rows = clm.getRows();
-
-                List<Object> diffObjects = new ArrayList<>();
-
-                for(HashMap<Object, Object> hash : rows) {
-
-                    for(Object keys : hash.entrySet()) {
-
-                        Map.Entry<Object, Object> res = (Map.Entry<Object, Object>) keys;
-
-                        if(!diffObjects.contains(((Map.Entry<?, ?>) keys).getKey())) {
-                            diffObjects.add(((Map.Entry<?, ?>) keys).getKey());
-                        }
-                    }
-                }
-
-                for(Object obj : diffObjects) { //Passing cross all groups
-
-                    HashMap base = new HashMap();
-
-                    for (Column column1 : toShow) {
-                        base.put(column1.getName(), (column1.getName().equals(column)) ? obj : Double.NaN); //we can't access specific index here, so we will access to it later in SelectResponse
-                    }
-
-                    selectResponse.add(index, base);
-                    index -= 1;
-                }
-
-            }
-
-        }
-        return selectResponse;*/
     }
 
     private int selectIndex(Column column, HashMap<String, Object> row, Object[] values, int bloc, int index) throws IOException {

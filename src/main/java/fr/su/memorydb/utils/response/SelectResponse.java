@@ -22,56 +22,6 @@ public class SelectResponse extends ValidResponse {
         return rows;
     }
 
-    /*public SelectResponse merge(List<SelectResponse> responses, TableSelection.SelectBody selectBody) {
-        if(responses == null || responses.isEmpty()) { return this; }
-
-        SelectResponse retval = new SelectResponse(selectBody.getTable());
-
-        if (rows.isEmpty())
-            return retval;
-
-        //If group by is in the responses, we need to add it before updating
-        for(SelectResponse selectResponse : responses) {
-            if(selectResponse == null) continue;
-            for(int index : selectResponse.rows.keySet()) {
-                if(index < 0) {
-                    HashMap<String, Object> columns = selectResponse.rows.get(index);
-                    //int groupByIndex = (int)columns.entrySet().stream().findFirst().get().getValue();
-
-                    for(Map.Entry<String, Object> entry : columns.entrySet()) {
-                        if(!selectBody.getGroupBy().equals(entry.getKey())) {
-                            columns.put(entry.getKey(), Double.NaN);
-                        }
-                    }
-
-                    retval.add(index, columns);
-                }
-            }
-        }
-
-        for (Map.Entry<Integer, HashMap<String, Object>> row : rows.entrySet()) {
-            boolean valid = true;
-            int index = (Integer) row.getKey();
-            HashMap<String, Object> newRow = new HashMap<>();
-            for (SelectResponse response : responses) {
-                if (response == null)
-                    continue;
-                HashMap<String, Object> tmp = response.rows.get(index);
-                if (row.getKey() > 0 && tmp == null) {
-                    valid = false;
-                    break;
-                }
-                newRow.putAll(tmp);
-            }
-            if (valid) {
-                newRow.putAll(row.getValue());
-                retval.add(row.getKey(), newRow);
-            }
-        }
-
-        return retval;
-    }*/
-
     /*public SelectResponse aggregate(TableSelection.SelectBody selectBody) {
         if(!selectBody.getRequesterIp().equals(selectBody.getCurrentIp())) {
             return this;

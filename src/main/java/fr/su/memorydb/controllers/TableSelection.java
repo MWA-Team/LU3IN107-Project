@@ -102,32 +102,11 @@ public class TableSelection {
         tmpRows.add(localRows);
         tmpRows.add(remoteRows[0]);
 
-        List<HashMap<String, Object>> rows = RowsResponse.mergeRows(tmpRows);
+        List<HashMap<String, Object>> rows = RowsResponse.mergeRows(tmpRows, selectBody);
 
         SelectResponse response = new SelectResponse(selectBody.table, rows);
 
         return Response.status(200).entity(response.details("Select operation was successful !").setStart(start).done()).type(MediaType.APPLICATION_JSON).build();
-
-        /*if(selectBody.requesterIp == null) {
-            selectBody.requesterIp = forwardingManager.getLocalIp();
-        }
-        selectBody.currentIp = forwardingManager.getLocalIp();
-
-        SelectResponse localResponse = localSelectHandler.select(selectBody);
-        SelectResponse remoteResponse = remoteSelectHandler.select(selectBody);
-
-        int statusCode = 200;
-
-        if (localResponse == null && remoteResponse == null)
-            statusCode = 204;
-
-        List<SelectResponse> list = new ArrayList<>();
-        list.add(remoteResponse);
-        SelectResponse finaleResponse = localResponse != null ? localResponse.merge(list, selectBody) : remoteResponse != null ? remoteResponse : new SelectResponse(selectBody.table);
-        finaleResponse.setStart(instant);
-        finaleResponse.aggregate(selectBody);
-
-        return Response.status(statusCode).entity(finaleResponse.done()).type(MediaType.APPLICATION_JSON).build();*/
     }
 
     @GET
@@ -180,11 +159,7 @@ public class TableSelection {
         @JsonProperty
         private Aggregate aggregate;
 
-        private String requesterIp;
-
-        private String currentIp;
-
-        private String groupBy;
+        private List<String> groupBy;
 
         public String getTable() {
             return table;
@@ -225,22 +200,14 @@ public class TableSelection {
             return aggregate != null && aggregate.min != null;
         }
 
-        public String getGroupBy() {
+        public List<String> getGroupBy() {
             return groupBy;
         }
 
         public boolean hasGroupBy() {
-
             return groupBy != null && !groupBy.isEmpty();
         }
 
-        public String getRequesterIp() {
-            return requesterIp;
-        }
-
-        public String getCurrentIp() {
-            return currentIp;
-        }
     }
 
     public static class WhereBody {
@@ -346,6 +313,11 @@ public class TableSelection {
         public List<String> getMin() {
             return min;
         }
+
+        public boolean isAggregated(String column) {
+            return (sum != null && sum.contains(column)) || (count != null && count.contains(column)) || (mean != null && mean.contains(column));
+        }
+
     }
 
     public enum Operand { EQUALS, BIGGER, LOWER, NOT_EQUALS }

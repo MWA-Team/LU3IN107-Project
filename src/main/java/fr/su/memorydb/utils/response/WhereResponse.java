@@ -43,6 +43,9 @@ public class WhereResponse {
             indexes = responses.remove(0);
         }
 
+        if (indexes == null)
+            return null;
+
         List<Integer> mergedIndexes = new LinkedList<>();
         for (int index : indexes) {
             boolean pass = false;
