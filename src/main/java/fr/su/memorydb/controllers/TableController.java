@@ -38,6 +38,7 @@ public class TableController {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response table(TableBody tableBody) throws IOException, InterruptedException {
+        System.gc();
         Instant start = Instant.now();
 
         if(Database.getInstance().getTables().containsKey(tableBody.tableName)) {
