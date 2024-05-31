@@ -185,6 +185,8 @@ public class TableSelection {
             return aggregate != null && aggregate.mean != null;
         }
 
+        public boolean hasCountAggregate() {return aggregate != null && aggregate.count != null;}
+
         public List<String> getGroupBy() {
             return groupBy;
         }
@@ -291,6 +293,81 @@ public class TableSelection {
 
         public boolean isAggregated(String column) {
             return (sum != null && sum.contains(column)) || (count != null && count.contains(column)) || (mean != null && mean.contains(column));
+        }
+
+        public void sum(List<HashMap<String, Object>> rows, String column, List<Integer> indexes, HashMap<String, Object> output) {
+            if (rows == null || rows.isEmpty())
+                return;
+
+            if (indexes != null) {
+                String name = "sum-" + column;
+                double total = 0;
+                for (Integer index : indexes) {
+                    Object value = rows.get(index).get(column);
+                    if (value == null)
+                        continue;
+                    if (!(value instanceof Number))
+                        throw new RuntimeException("You're using the sum aggregate on a non-number column !");
+                    total += ((Number) value).doubleValue();
+                }
+                output.put(name, total);
+            } else {
+                String name = "sum-" + column;
+                double total = 0;
+                for (int i = 0; i < rows.size(); i++) {
+                    Object value = rows.get(i).get(column);
+                    if (value == null)
+                        continue;
+                    if (!(value instanceof Number))
+                        throw new RuntimeException("You're using the sum aggregate on a non-number column !");
+                    total += ((Number) value).doubleValue();
+                }
+                output.put(name, total);
+            }
+        }
+
+        public void mean(List<HashMap<String, Object>> rows, String column, List<Integer> indexes, HashMap<String, Object> output) {
+            if (rows == null || rows.isEmpty())
+                return;
+
+            if (indexes != null) {
+                String name = "mean-" + column;
+                double total = 0;
+                for (Integer index : indexes) {
+                    Object value = rows.get(index).get(column);
+                    if (value == null)
+                        continue;
+                    if (!(value instanceof Number))
+                        throw new RuntimeException("You're using the mean aggregate on a non-number column !");
+                    total += ((Number) value).doubleValue();
+                }
+                output.put(name, total / indexes.size());
+            } else {
+                String name = "mean-" + column;
+                double total = 0;
+                for (int i = 0; i < rows.size(); i++) {
+                    Object value = rows.get(i).get(column);
+                    if (value == null)
+                        continue;
+                    if (!(value instanceof Number))
+                        throw new RuntimeException("You're using the mean aggregate on a non-number column !");
+                    total += ((Number) value).doubleValue();
+                }
+                output.put(name, total / rows.size());
+            }
+        }
+
+        public void count(List<HashMap<String, Object>> rows, String column, List<Integer> indexes, HashMap<String, Object> output) {
+            if (rows == null || rows.isEmpty())
+                return;
+
+            if (indexes != null) {
+                String name = "count-" + column;
+                output.put(name, indexes.size());
+            } else {
+                String name = "count-" + column;
+                output.put(name, rows.size());
+            }
         }
 
     }
