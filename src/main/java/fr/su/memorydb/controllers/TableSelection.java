@@ -131,18 +131,18 @@ public class TableSelection {
     @Path("rows")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getRows(RowsBody rowsBody) {
-        Table table = Database.getInstance().getTables().get(rowsBody.table);
+    public Response getRows(RowsBody rowsBody) throws IOException {
+        Table table = Database.getInstance().getTables().get(rowsBody.getTable());
         if (table == null) {
-            return Response.status(404).entity(new ErrorResponse(rowsBody.table, "Table '" + rowsBody.table + "' not found.").done()).type(MediaType.APPLICATION_JSON).build();
+            return Response.status(404).entity(new ErrorResponse(rowsBody.getTable(), "Table '" + rowsBody.getTable() + "' not found.").done()).type(MediaType.APPLICATION_JSON).build();
         }
 
         ToolBox.Context context = new ToolBox.Context(routingContext.request().uri(), routingContext.queryParams().get("server_id"), routingContext.request().headers().get("Server-Signature"));
         ToolBox.setContext(context);
 
-        // TODO
+        List<HashMap<String, Object>> rows = localSelectHandler.select(rowsBody.getSelectBody(), rowsBody.getIndexes());
 
-        return Response.status(200).entity(new RowsResponse()).type(MediaType.APPLICATION_JSON).build();
+        return Response.status(200).entity(new RowsResponse(rowsBody.getTable(), rows)).type(MediaType.APPLICATION_JSON).build();
     }
 
     public static class SelectBody {
@@ -238,33 +238,27 @@ public class TableSelection {
     public static class RowsBody {
 
         @JsonProperty
-        private String table;
-
-        @JsonProperty
-        String[] columns;
-
-        @JsonProperty
         int[] indexes;
+
+        @JsonProperty
+        SelectBody selectBody;
 
         public RowsBody() {}
 
-        public RowsBody(String table, String[] columns, int[] indexes) {
-            this.table = table;
-            this.columns = columns;
+        public RowsBody(SelectBody selectBody, int[] indexes) {
+            this.selectBody = selectBody;
             this.indexes = indexes;
         }
 
         public String getTable() {
-            return table;
-        }
-
-        public String[] getColumns() {
-            return columns;
+            return selectBody.getTable();
         }
 
         public int[] getIndexes() {
             return indexes;
         }
+
+        public SelectBody getSelectBody() {return selectBody;}
 
     }
 
