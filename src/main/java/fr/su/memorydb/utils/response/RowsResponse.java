@@ -50,38 +50,87 @@ public class RowsResponse {
         // Getting the indexes from the potential "group by"
         List<List<Integer>> indexes = sortIndexes(selectBody.getGroupBy(), rows, null);
 
+        TableSelection.Aggregate aggregate = selectBody.getAggregate();
+
         // Actually merging the rows
-        List<HashMap<String, Object>> mergedRows = new ArrayList<>(length);
+        List<HashMap<String, Object>> mergedRows = new ArrayList<>(indexes == null ? length : indexes.size());
         if (indexes == null) {
             for (int i = 0; i < length; i++) {
-                for (List<HashMap<String, Object>> row : rows) {
-                    if (row == null)
+                for (List<HashMap<String, Object>> tmpRows : rows) {
+                    if (tmpRows == null)
                         continue;
                     HashMap<String, Object> mergedRow;
                     if (mergedRows.size() <= i) {
-                        mergedRow = row.get(i);
+                        mergedRow = tmpRows.get(i);
                         mergedRows.add(mergedRow);
                     } else {
                         mergedRow = mergedRows.get(i);
-                        mergedRow.putAll(row.get(i));
+                        mergedRow.putAll(tmpRows.get(i));
                     }
+
+                    if (selectBody.hasMeanAggregate() && tmpRows.get(0) != null) {
+                        for (String column : aggregate.getMean()) {
+                            if (!tmpRows.get(0).containsKey(column))
+                                continue;
+                            aggregate.mean(tmpRows, column, null, mergedRow);
+                        }
+                    }
+                    if (selectBody.hasSumAggregate() && tmpRows.get(0) != null) {
+                        for (String column : aggregate.getMean()) {
+                            if (!tmpRows.get(0).containsKey(column))
+                                continue;
+                            aggregate.sum(tmpRows, column, null, mergedRow);
+                        }
+                    }
+                    if (selectBody.hasCountAggregate() && tmpRows.get(0) != null) {
+                        for (String column : aggregate.getMean()) {
+                            if (!tmpRows.get(0).containsKey(column))
+                                continue;
+                            aggregate.count(tmpRows, column, null, mergedRow);
+                        }
+                    }
+                    if (aggregate != null)
+                        break;
                 }
+                if (aggregate != null)
+                    break;
             }
         } else {
             int size = 0;
             for (List<Integer> listIndexes : indexes) {
                 for (Integer index : listIndexes) {
                     size++;
-                    for (List<HashMap<String, Object>> row : rows) {
-                        if (row == null)
+                    for (List<HashMap<String, Object>> tmpRows : rows) {
+                        if (tmpRows == null || tmpRows.isEmpty())
                             continue;
                         HashMap<String, Object> mergedRow;
                         if (mergedRows.size() < size) {
-                            mergedRow = row.get(index);
+                            mergedRow = tmpRows.get(index);
                             mergedRows.add(mergedRow);
                         } else {
                             mergedRow = mergedRows.get(size - 1);
-                            mergedRow.putAll(row.get(index));
+                            mergedRow.putAll(tmpRows.get(index));
+                        }
+                        if (selectBody.hasMeanAggregate() && tmpRows.get(0) != null) {
+                            for (String column : aggregate.getMean()) {
+                                if (!tmpRows.get(0).containsKey(column))
+                                    continue;
+                                aggregate.mean(tmpRows, column, listIndexes, mergedRow);
+                            }
+                        }
+                        if (selectBody.hasSumAggregate() && tmpRows.get(0) != null) {
+                            for (String column : aggregate.getSum()) {
+                                if (!tmpRows.get(0).containsKey(column))
+                                    continue;
+                                aggregate.sum(tmpRows, column, listIndexes, mergedRow);
+                            }
+                        }
+                        if (selectBody.hasCountAggregate() && tmpRows.get(0) != null) {
+                            for (String column : aggregate.getCount()) {
+                                if (!tmpRows.get(0).containsKey(column))
+                                    continue;
+                                aggregate.count(tmpRows, column, listIndexes, mergedRow);
+                            }
                         }
                     }
                     break;
