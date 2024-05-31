@@ -446,7 +446,7 @@ public class Column<T> {
         if (enableIndexing) {
             for (HashMap<T, Object> bloc : rows) {
                 for (Map.Entry<T, Object> entry : bloc.entrySet()) {
-                    if (!entry.getKey().equals(val)) {
+                    if ((entry.getKey() == null && val != null) || (entry.getKey() != null && !entry.getKey().equals(val))) {
                         // Decompressing indexes
                         Object tmp = indexesCompressor.uncompress(entry.getValue());
                         for (int j = 0; j < Array.getLength(tmp); j++) {
