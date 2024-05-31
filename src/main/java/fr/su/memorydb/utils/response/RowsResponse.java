@@ -1,6 +1,7 @@
 package fr.su.memorydb.utils.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import fr.su.memorydb.controllers.TableSelection;
 
 import java.util.*;
 
@@ -27,7 +28,7 @@ public class RowsResponse {
         return rows;
     }
 
-    public static List<HashMap<String, Object>> mergeRows(List<List<HashMap<String, Object>>> rows) {
+    public static List<HashMap<String, Object>> mergeRows(List<List<HashMap<String, Object>>> rows, TableSelection.SelectBody selectBody) {
         if (rows == null || rows.isEmpty())
             return null;
 
@@ -46,19 +47,44 @@ public class RowsResponse {
         if (length == -1)
             return null;
 
+        // Getting the indexes from the potential "group by"
+        List<List<Integer>> indexes = sortIndexes(selectBody.getGroupBy(), rows, null);
+
         // Actually merging the rows
         List<HashMap<String, Object>> mergedRows = new ArrayList<>(length);
-        for (int i = 0; i < length; i++) {
-            for (List<HashMap<String, Object>> row : rows) {
-                if (row == null)
-                    continue;
-                HashMap<String, Object> mergedRow;
-                if (mergedRows.size() <= i) {
-                    mergedRow = row.get(i);
-                    mergedRows.add(mergedRow);
-                } else {
-                    mergedRow = mergedRows.get(i);
-                    mergedRow.putAll(row.get(i));
+        if (indexes == null) {
+            for (int i = 0; i < length; i++) {
+                for (List<HashMap<String, Object>> row : rows) {
+                    if (row == null)
+                        continue;
+                    HashMap<String, Object> mergedRow;
+                    if (mergedRows.size() <= i) {
+                        mergedRow = row.get(i);
+                        mergedRows.add(mergedRow);
+                    } else {
+                        mergedRow = mergedRows.get(i);
+                        mergedRow.putAll(row.get(i));
+                    }
+                }
+            }
+        } else {
+            int size = 0;
+            for (List<Integer> listIndexes : indexes) {
+                for (Integer index : listIndexes) {
+                    size++;
+                    for (List<HashMap<String, Object>> row : rows) {
+                        if (row == null)
+                            continue;
+                        HashMap<String, Object> mergedRow;
+                        if (mergedRows.size() < size) {
+                            mergedRow = row.get(index);
+                            mergedRows.add(mergedRow);
+                        } else {
+                            mergedRow = mergedRows.get(size - 1);
+                            mergedRow.putAll(row.get(index));
+                        }
+                    }
+                    break;
                 }
             }
         }
@@ -66,4 +92,74 @@ public class RowsResponse {
         return mergedRows;
     }
 
+    private static List<List<Integer>> sortIndexes(List<String> groupBy, List<List<HashMap<String, Object>>> rows, List<List<Integer>> sortedIndexes) {
+        if (rows == null || rows.isEmpty() || groupBy == null)
+            return null;
+
+        if (groupBy.isEmpty())
+            return sortedIndexes;
+
+        List<List<Integer>> retval = new LinkedList<>();
+        String column = groupBy.remove(groupBy.size() - 1);
+        if (sortedIndexes == null) {
+            // First call
+            HashMap<Object, List<Integer>> map = new HashMap<>();
+            for (List<HashMap<String, Object>> tmpRows : rows) {
+                if (tmpRows == null)
+                    continue;
+                boolean pass = false;
+                for (int i = 0; i < tmpRows.size(); i++) {
+                    HashMap<String, Object> tmpRow = tmpRows.get(i);
+                    if (!tmpRow.containsKey(column)) {
+                        // Then this whole list does not contain this column, so we can skip it for our group by
+                        pass = true;
+                        break;
+                    }
+                    List<Integer> indexes = map.computeIfAbsent(tmpRow.get(column), k -> new LinkedList<>());
+                    indexes.add(i);
+                }
+                if (pass)
+                    continue;
+                // If we get here, it means that we parsed a list containing the column to sort on, so we can exit the loop as the others won't have it either way
+                break;
+            }
+
+            // Adding the sorted indexes to the list
+            for (Map.Entry<Object, List<Integer>> entry : map.entrySet()) {
+                retval.add(entry.getValue());
+            }
+        } else {
+            // Following calls
+            for (List<HashMap<String, Object>> tmpRows : rows) {
+                if (tmpRows == null)
+                    continue;
+
+                boolean pass = false;
+                for (List<Integer> listIndexes : sortedIndexes) {
+                    HashMap<Object, List<Integer>> map = new HashMap<>();
+                    for (Integer index : listIndexes) {
+                        HashMap<String, Object> tmpRow = tmpRows.get(index);
+                        if (!tmpRow.containsKey(column)) {
+                            // Then this whole list does not contain this column, so we can skip it for our group by
+                            pass = true;
+                            break;
+                        }
+                        List<Integer> indexes = map.computeIfAbsent(tmpRow.get(column), k -> new LinkedList<>());
+                        indexes.add(index);
+                    }
+                    if (pass)
+                        break;
+
+                    // Adding the sorted indexes to the list
+                    for (Map.Entry<Object, List<Integer>> entry : map.entrySet()) {
+                        retval.add(entry.getValue());
+                    }
+                }
+            }
+        }
+
+        return sortIndexes(groupBy, rows, retval);
+    }
+
 }
+
