@@ -34,6 +34,7 @@ public class TableInsertion {
     @POST
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     public Response insertion(@QueryParam("table") String tableName, File file) {
+        System.gc();
         Instant start = Instant.now();
 
         Table table = Database.getInstance().getTables().get(tableName);

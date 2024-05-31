@@ -43,6 +43,7 @@ public class TableSelection {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response selectColumns(SelectBody selectBody) throws IOException, InterruptedException {
+        System.gc();
         Instant start = Instant.now();
 
         Table table = Database.getInstance().getTables().get(selectBody.table);
@@ -114,6 +115,7 @@ public class TableSelection {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response getWhere(WhereBody whereBody) {
+        System.gc();
         Table table = Database.getInstance().getTables().get(whereBody.table);
         if (table == null) {
             return Response.status(404).entity(new ErrorResponse(whereBody.table, "Table '" + whereBody.table + "' not found.").done()).type(MediaType.APPLICATION_JSON).build();
@@ -132,6 +134,7 @@ public class TableSelection {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response getRows(RowsBody rowsBody) throws IOException {
+        System.gc();
         Table table = Database.getInstance().getTables().get(rowsBody.getTable());
         if (table == null) {
             return Response.status(404).entity(new ErrorResponse(rowsBody.getTable(), "Table '" + rowsBody.getTable() + "' not found.").done()).type(MediaType.APPLICATION_JSON).build();
