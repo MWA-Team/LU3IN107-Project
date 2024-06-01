@@ -31,9 +31,8 @@ public class LocalSelectHandler implements SelectHandler {
                 continue;
 
             LambdaTypeConverter converter = column.getConverter();
-            TableSelection.SelectOperand condition = whereBody.getWhere().get(column.getName());
-            TableSelection.Operand operand = condition.getOperand();
-            Object compare = condition.getValue();
+            Object compare = selectBody.getWhere().get(column.getName()).getValue();
+            TableSelection.Operand operand = selectBody.getWhere().get(column.getName()).getOperand();
 
             switch (operand) {
                 case EQUALS:
