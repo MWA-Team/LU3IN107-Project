@@ -188,7 +188,17 @@ public class TableSelection {
             return aggregate != null && aggregate.mean != null;
         }
 
-        public boolean hasCountAggregate() {return aggregate != null && aggregate.count != null;}
+        public boolean hasCountAggregate() {
+            return aggregate != null && aggregate.count != null;
+        }
+
+        public boolean hasMaxAggregate() {
+            return aggregate != null && aggregate.max != null;
+        }
+
+        public boolean hasMinAggregate() {
+            return aggregate != null && aggregate.min != null;
+        }
 
         public List<String> getGroupBy() {
             return groupBy;
@@ -275,6 +285,8 @@ public class TableSelection {
         private List<String> sum;
         private List<String> mean;
         private List<String> count;
+        private List<String> max;
+        private List<String> min;
 
         public List<String> getSum() {
             return sum;
@@ -286,6 +298,14 @@ public class TableSelection {
 
         public List<String> getCount() {
             return count;
+        }
+
+        public List<String> getMax() {
+            return max;
+        }
+
+        public List<String> getMin() {
+            return min;
         }
 
         public boolean isAggregated(String column) {
@@ -364,6 +384,76 @@ public class TableSelection {
             } else {
                 String name = "count-" + column;
                 output.put(name, rows.size());
+            }
+        }
+
+        public void max(List<HashMap<String, Object>> rows, String column, List<Integer> indexes, HashMap<String, Object> output) {
+            if (rows == null || rows.isEmpty())
+                return;
+
+            if (indexes != null) {
+                String name = "max-" + column;
+                Double max = null;
+                for (Integer index : indexes) {
+                    Object value = rows.get(index).get(column);
+                    if (value == null)
+                        continue;
+                    if (!(value instanceof Number))
+                        throw new RuntimeException("You're using the max aggregate on a non-number column !");
+                    double tmp = ((Number) value).doubleValue();
+                    if (max == null || tmp > max)
+                        max = tmp;
+                }
+                output.put(name, max);
+            } else {
+                String name = "max-" + column;
+                Double max = null;
+                for (int i = 0; i < rows.size(); i++) {
+                    Object value = rows.get(i).get(column);
+                    if (value == null)
+                        continue;
+                    if (!(value instanceof Number))
+                        throw new RuntimeException("You're using the max aggregate on a non-number column !");
+                    double tmp = ((Number) value).doubleValue();
+                    if (max == null || tmp > max)
+                        max = tmp;
+                }
+                output.put(name, max);
+            }
+        }
+
+        public void min(List<HashMap<String, Object>> rows, String column, List<Integer> indexes, HashMap<String, Object> output) {
+            if (rows == null || rows.isEmpty())
+                return;
+
+            if (indexes != null) {
+                String name = "min-" + column;
+                Double min = null;
+                for (Integer index : indexes) {
+                    Object value = rows.get(index).get(column);
+                    if (value == null)
+                        continue;
+                    if (!(value instanceof Number))
+                        throw new RuntimeException("You're using the min aggregate on a non-number column !");
+                    double tmp = ((Number) value).doubleValue();
+                    if (min == null || tmp < min)
+                        min = tmp;
+                }
+                output.put(name, min);
+            } else {
+                String name = "min-" + column;
+                Double min = null;
+                for (int i = 0; i < rows.size(); i++) {
+                    Object value = rows.get(i).get(column);
+                    if (value == null)
+                        continue;
+                    if (!(value instanceof Number))
+                        throw new RuntimeException("You're using the min aggregate on a non-number column !");
+                    double tmp = ((Number) value).doubleValue();
+                    if (min == null || tmp < min)
+                        min = tmp;
+                }
+                output.put(name, min);
             }
         }
 
