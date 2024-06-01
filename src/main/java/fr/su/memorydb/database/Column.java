@@ -22,7 +22,7 @@ public class Column<T> {
     private final String name;
     private final boolean stored;
     private int blocsSize;
-    private List<HashMap<T, Object>> rows;
+    private HashMap<T, Object> rows;
     private final List<Object> values;
     private final Class<T> type;
     private LambdaInsertion lambda;
@@ -51,7 +51,7 @@ public class Column<T> {
         this.name = name;
         this.stored = stored;
         this.blocsSize = blocsSize;
-        this.rows = new ArrayList<>();
+        this.rows = new HashMap<>();
         this.type = type;
         this.values = new ArrayList<>();
         this.enableIndexing = enableIndexing;
@@ -267,12 +267,13 @@ public class Column<T> {
         return name;
     }
 
-    public List<HashMap<T, Object>> getRows() { return rows; }
+    public HashMap<T, Object> getRows() { return rows; }
 
     public void addRows(Object[] newRows, int size) throws IOException {
         int limit = size > 0 ? size : newRows.length;
         Object[] toAdd;
         boolean replacing = true;
+        HashMap<T, LinkedList<Integer>> rows = null;
 
         // Getting last inserted array
         if (!lastBlocIsFull)
@@ -293,35 +294,22 @@ public class Column<T> {
             values.set(Math.max(values.size() - 1, 0), valuesCompressor.compress(toAdd, newLength));
 
             // Changing indexes if needed
-            if (indexingEnabled()) {
-                HashMap<T, LinkedList<Integer>> rows = new HashMap<>();
+            if (enableIndexing) {
+                rows = new HashMap<>();
                 int offset = size > 0 ? size : newRows.length;
                 for (int i = 0; i < newLength; i++) {
-                    LinkedList<Integer> indexes;
+                    LinkedList<Integer> indexes = rows.get(type.cast(toAdd[i]));
 
-                    // If there was no index for this value, we create a list for that
-                    if (rows.containsKey(type.cast(toAdd[i])))
-                        indexes = rows.get(type.cast(toAdd[i]));
-                    else {
-                        indexes = new LinkedList<>();
-                        rows.put(type.cast(toAdd[i]), indexes);
+                    // If there was no index for this value, we get the one from the indexing engine if it exists or create a new list if it doesn't
+                    if (indexes == null) {
+                        indexes = (LinkedList<Integer>) indexesCompressor.uncompress(this.rows.get(type.cast(toAdd[i])));
+                        if (indexes == null)
+                            indexes = new LinkedList<>();
                     }
 
-                    // Linking current index and this value
+                    // Adding current index
                     indexes.add(table.rowsCounter - offset + i);
                 }
-
-                // Adding all changes to the database
-                HashMap<T, Object> newBloc = new HashMap<>();
-                for (Map.Entry<T, LinkedList<Integer>> entry : rows.entrySet()) {
-                    int[] array = entry.getValue().stream().mapToInt(Integer::intValue).toArray();
-
-                    // Adding compressed indexes
-                    newBloc.put(entry.getKey(), indexesCompressor.compress(array, array.length));
-                }
-
-                // Adding changes
-                this.rows.set(this.rows.size() - 1, newBloc);
             }
 
             int max = Math.max(tmp.length - newLength, newLength - tmp.length);
@@ -340,34 +328,33 @@ public class Column<T> {
             return;
 
         // Creating indexes if needed
-        HashMap<T, LinkedList<Integer>> rows = new HashMap<>();
+        if (rows == null)
+            rows = new HashMap<>();
 
         for (int i = 0; i < limit; i++) {
-            LinkedList<Integer> indexes;
+            LinkedList<Integer> indexes = rows.get(type.cast(toAdd[i]));
 
-            // If there was no index for this value, we create a list for that
-            if (rows.containsKey(type.cast(toAdd[i])))
-                indexes = rows.get(type.cast(toAdd[i]));
-            else {
+            // If there was no index for this value, we get the one from the indexing engine if it exists or create a new list if it doesn't
+            if (indexes == null) {
                 indexes = new LinkedList<>();
+                int[] tmp = (int[]) indexesCompressor.uncompress(this.rows.get(type.cast(toAdd[i])));
+                if (tmp != null) {
+                    for (int j = 0; j < tmp.length; j++)
+                        indexes.add(tmp[j]);
+                }
                 rows.put(type.cast(toAdd[i]), indexes);
             }
 
-            // Linking current index and this value
+            // Adding current index
             indexes.add(table.rowsCounter - limit + i);
         }
 
         // Adding all changes to the database
-        HashMap<T, Object> newBloc = new HashMap<>();
         for (Map.Entry<T, LinkedList<Integer>> entry : rows.entrySet()) {
-            int[] array = entry.getValue().stream().mapToInt(Integer::intValue).toArray();
-
             // Adding compressed indexes
-            newBloc.put(entry.getKey(), indexesCompressor.compress(array, array.length));
+            int[] array = entry.getValue().stream().mapToInt(Integer::intValue).toArray();
+            this.rows.put(entry.getKey(), indexesCompressor.compress(array, array.length));
         }
-
-        // Adding changes
-        this.rows.add(newBloc);
     }
 
     public boolean stored() {
@@ -424,18 +411,13 @@ public class Column<T> {
         List<Integer> list = Collections.synchronizedList(new LinkedList<>());
 
         if (enableIndexing) {
-            for (HashMap<T, Object> bloc : rows) {
-                Object indexes = bloc.get(val);
-                if (indexes == null)
-                    continue;
+            Object indexes = rows.get(val);
+            if (indexes == null)
+                return new int[0];
 
-                // Decompressing indexes
-                Object tmp = indexesCompressor.uncompress(indexes);
-                for (int j = 0; j < Array.getLength(tmp); j++) {
-                    list.add((Integer) Array.get(tmp, j));
-                }
-            }
-            return list.stream().mapToInt(Integer::intValue).toArray();
+            // Decompressing indexes
+            Object tmp = indexesCompressor.uncompress(indexes);
+            return (int[]) tmp;
         } else {
             int nbMaxThreads = 8;
             List<Thread> threads = new ArrayList<>(nbMaxThreads);
@@ -481,19 +463,19 @@ public class Column<T> {
         List<Integer> list = Collections.synchronizedList(new LinkedList<>());
 
         if (enableIndexing) {
-            for (HashMap<T, Object> bloc : rows) {
-                Object indexes = bloc.get(val);
-                if (indexes == null)
-                    continue;
+            for (Map.Entry<T, Object> entry : rows.entrySet()) {
+                if (entry.getKey() instanceof Comparable && val instanceof Comparable) {
+                    Comparable<T> comparableKey = (Comparable<T>) entry.getKey();
+                    if (comparableKey.compareTo(val) > 0) {
+                        Object indexes = rows.get(entry.getKey());
+                        if (indexes == null)
+                            continue;
 
-                // Decompressing indexes
-                Object tmpArray = indexesCompressor.uncompress(indexes);
-                for (int j = 0; j < Array.getLength(tmpArray); j++) {
-                    Object tmp = Array.get(tmpArray, j);
-                    if (tmp instanceof Comparable && val instanceof Comparable) {
-                        Comparable<T> comparableKey = (Comparable<T>) tmp;
-                        if (comparableKey.compareTo(val) > 0)
-                            list.add((Integer) tmp);
+                        // Decompressing indexes
+                        Object tmpArray = indexesCompressor.uncompress(indexes);
+                        for (int j = 0; j < Array.getLength(tmpArray); j++) {
+                            list.add((Integer) Array.get(tmpArray, j));
+                        }
                     }
                 }
             }
@@ -547,19 +529,19 @@ public class Column<T> {
         List<Integer> list = Collections.synchronizedList(new LinkedList<>());
 
         if (enableIndexing) {
-            for (HashMap<T, Object> bloc : rows) {
-                Object indexes = bloc.get(val);
-                if (indexes == null)
-                    continue;
+            for (Map.Entry<T, Object> entry : rows.entrySet()) {
+                if (entry.getKey() instanceof Comparable && val instanceof Comparable) {
+                    Comparable<T> comparableKey = (Comparable<T>) entry.getKey();
+                    if (comparableKey.compareTo(val) < 0) {
+                        Object indexes = rows.get(entry.getKey());
+                        if (indexes == null)
+                            continue;
 
-                // Decompressing indexes
-                Object tmpArray = indexesCompressor.uncompress(indexes);
-                for (int j = 0; j < Array.getLength(tmpArray); j++) {
-                    Object tmp = Array.get(tmpArray, j);
-                    if (tmp instanceof Comparable && val instanceof Comparable) {
-                        Comparable<T> comparableKey = (Comparable<T>) tmp;
-                        if (comparableKey.compareTo(val) < 0)
-                            list.add((Integer) tmp);
+                        // Decompressing indexes
+                        Object tmpArray = indexesCompressor.uncompress(indexes);
+                        for (int j = 0; j < Array.getLength(tmpArray); j++) {
+                            list.add((Integer) Array.get(tmpArray, j));
+                        }
                     }
                 }
             }
@@ -613,19 +595,19 @@ public class Column<T> {
         List<Integer> list = Collections.synchronizedList(new LinkedList<>());
 
         if (enableIndexing) {
-            for (HashMap<T, Object> bloc : rows) {
-                Object indexes = bloc.get(val);
-                if (indexes == null)
-                    continue;
+            for (Map.Entry<T, Object> entry : rows.entrySet()) {
+                if (entry.getKey() instanceof Comparable && val instanceof Comparable) {
+                    Comparable<T> comparableKey = (Comparable<T>) entry.getKey();
+                    if (comparableKey.compareTo(val) != 0) {
+                        Object indexes = rows.get(entry.getKey());
+                        if (indexes == null)
+                            continue;
 
-                // Decompressing indexes
-                Object tmpArray = indexesCompressor.uncompress(indexes);
-                for (int j = 0; j < Array.getLength(tmpArray); j++) {
-                    Object tmp = Array.get(tmpArray, j);
-                    if (tmp instanceof Comparable && val instanceof Comparable) {
-                        Comparable<T> comparableKey = (Comparable<T>) tmp;
-                        if (comparableKey.compareTo(val) != 0)
-                            list.add((Integer) tmp);
+                        // Decompressing indexes
+                        Object tmpArray = indexesCompressor.uncompress(indexes);
+                        for (int j = 0; j < Array.getLength(tmpArray); j++) {
+                            list.add((Integer) Array.get(tmpArray, j));
+                        }
                     }
                 }
             }
