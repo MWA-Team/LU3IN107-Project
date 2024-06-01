@@ -213,6 +213,7 @@ public class Column<T> {
                     for (int i = 0; i < size; i++) {
                         out.writeString((String) Array.get(array, i));
                     }
+                    out.finish();
                     byte[] bytes = out.toByteArray();
                     out.close();
                     return bytes;
