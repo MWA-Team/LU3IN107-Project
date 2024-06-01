@@ -54,6 +54,7 @@ public class RowsResponse {
 
         // Actually merging the rows
         List<HashMap<String, Object>> mergedRows = new ArrayList<>(indexes == null ? length : indexes.size());
+        boolean hasAggregates = false;
         if (indexes == null) {
             for (int i = 0; i < length; i++) {
                 for (List<HashMap<String, Object>> tmpRows : rows) {
@@ -69,6 +70,7 @@ public class RowsResponse {
                     }
 
                     if (selectBody.hasMeanAggregate() && tmpRows.get(0) != null) {
+                        hasAggregates = true;
                         for (String column : aggregate.getMean()) {
                             if (!tmpRows.get(0).containsKey(column))
                                 continue;
@@ -76,20 +78,23 @@ public class RowsResponse {
                         }
                     }
                     if (selectBody.hasSumAggregate() && tmpRows.get(0) != null) {
-                        for (String column : aggregate.getMean()) {
+                        hasAggregates = true;
+                        for (String column : aggregate.getSum()) {
                             if (!tmpRows.get(0).containsKey(column))
                                 continue;
                             aggregate.sum(tmpRows, column, null, mergedRow);
                         }
                     }
                     if (selectBody.hasCountAggregate() && tmpRows.get(0) != null) {
-                        for (String column : aggregate.getMean()) {
+                        hasAggregates = true;
+                        for (String column : aggregate.getCount()) {
                             if (!tmpRows.get(0).containsKey(column))
                                 continue;
                             aggregate.count(tmpRows, column, null, mergedRow);
                         }
                     }
                     if (selectBody.hasMaxAggregate() && tmpRows.get(0) != null) {
+                        hasAggregates = true;
                         for (String column : aggregate.getMax()) {
                             if (!tmpRows.get(0).containsKey(column))
                                 continue;
@@ -97,16 +102,17 @@ public class RowsResponse {
                         }
                     }
                     if (selectBody.hasMinAggregate() && tmpRows.get(0) != null) {
+                        hasAggregates = true;
                         for (String column : aggregate.getMin()) {
                             if (!tmpRows.get(0).containsKey(column))
                                 continue;
                             aggregate.min(tmpRows, column, null, mergedRow);
                         }
                     }
-                    if (aggregate != null)
+                    if (hasAggregates)
                         break;
                 }
-                if (aggregate != null)
+                if (hasAggregates)
                     break;
             }
         } else {

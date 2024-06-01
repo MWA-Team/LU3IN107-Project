@@ -16,7 +16,7 @@ public interface SelectHandler {
      * @param whereBody JSON Body which contains the "where" query
      * @return an array containing all valid indexes for the "where" condition if it exists or null if it doesn't.
      */
-    int[] where(TableSelection.WhereBody whereBody);
+    int[] where(TableSelection.WhereBody whereBody) throws IOException, InterruptedException;
 
     /**
      * This method returns the response containing all the rows that need to be shown, filtered with the indexes given

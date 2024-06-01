@@ -477,141 +477,202 @@ public class Column<T> {
         }
     }
 
-    public int[] getBigger(T val) throws IOException {
-        LinkedList<Integer> list = new LinkedList<>();
+    public int[] getBigger(T val) throws IOException, InterruptedException {
+        List<Integer> list = Collections.synchronizedList(new LinkedList<>());
 
         if (enableIndexing) {
             for (HashMap<T, Object> bloc : rows) {
-                for (Map.Entry<T, Object> entry : bloc.entrySet()) {
-                    if (entry.getKey() instanceof Comparable && val instanceof Comparable) {
-                        Comparable<T> comparableKey = (Comparable<T>) entry.getKey();
-                        if (comparableKey.compareTo(val) > 0) {
-                            // Decompressing indexes
-                            Object tmp = indexesCompressor.uncompress(entry.getValue());
-                            for (int j = 0; j < Array.getLength(tmp); j++) {
-                                list.add((Integer) Array.get(tmp, j));
+                Object indexes = bloc.get(val);
+                if (indexes == null)
+                    continue;
+
+                // Decompressing indexes
+                Object tmpArray = indexesCompressor.uncompress(indexes);
+                for (int j = 0; j < Array.getLength(tmpArray); j++) {
+                    Object tmp = Array.get(tmpArray, j);
+                    if (tmp instanceof Comparable && val instanceof Comparable) {
+                        Comparable<T> comparableKey = (Comparable<T>) tmp;
+                        if (comparableKey.compareTo(val) > 0)
+                            list.add((Integer) tmp);
+                    }
+                }
+            }
+            return list.stream().mapToInt(Integer::intValue).toArray();
+        } else {
+            int nbMaxThreads = 8;
+            List<Thread> threads = new ArrayList<>(nbMaxThreads);
+
+            for (int i = 0; i < values.size(); i++) {
+                if (threads.size() == nbMaxThreads) {
+                    for (Thread thread : threads) {
+                        thread.join();
+                    }
+                    threads.clear();
+                }
+
+                int finalI = i;
+                Thread thread = new Thread(() -> {
+                    Object tmpArray;
+                    try {
+                        tmpArray = valuesCompressor.uncompress(values.get(finalI));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    for (int j = 0; j < Array.getLength(tmpArray); j++) {
+                        Object tmp = Array.get(tmpArray, j);
+                        if ((val == null && tmp == null) || (tmp instanceof Comparable && val instanceof Comparable)) {
+                            Comparable<T> comparableKey = (Comparable<T>) tmp;
+                            if (val != null && comparableKey.compareTo(val) > 0) {
+                                synchronized (list) {
+                                    list.add(j + finalI * blocsSize);
+                                }
                             }
                         }
                     }
-                }
+                });
+                threads.add(thread);
+                thread.start();
             }
-        } else {
-            // Might need to improve this part for more efficient search with threads perhaps
-            int index = 0;
-            for (Object bloc : values) {
-                Object tmpArray = valuesCompressor.uncompress(bloc);
-                for (int j = 0; j < Array.getLength(tmpArray); j++) {
-                    Object tmp = Array.get(tmpArray, j);
-                    if (tmp != null && ((Comparable<T>) tmp).compareTo(val) > 0)
-                        list.add(index);
-                    index++;
-                }
+            for (Thread thread : threads) {
+                thread.join();
             }
-        }
 
-        return list.stream().mapToInt(Integer::intValue).toArray();
+            int[] retval = list.stream().mapToInt(Integer::intValue).toArray();
+            Arrays.parallelSort(retval);
+            return retval;
+        }
     }
 
-    public int[] getBigger(T val) throws IOException {
-        LinkedList<Integer> list = new LinkedList<>();
+    public int[] getLower(T val) throws IOException, InterruptedException {
+        List<Integer> list = Collections.synchronizedList(new LinkedList<>());
 
         if (enableIndexing) {
             for (HashMap<T, Object> bloc : rows) {
-                for (Map.Entry<T, Object> entry : bloc.entrySet()) {
-                    if (entry.getKey() instanceof Comparable && val instanceof Comparable) {
-                        Comparable<T> comparableKey = (Comparable<T>) entry.getKey();
-                        if (comparableKey.compareTo(val) > 0) {
-                            // Decompressing indexes
-                            Object tmp = indexesCompressor.uncompress(entry.getValue());
-                            for (int j = 0; j < Array.getLength(tmp); j++) {
-                                list.add((Integer) Array.get(tmp, j));
+                Object indexes = bloc.get(val);
+                if (indexes == null)
+                    continue;
+
+                // Decompressing indexes
+                Object tmpArray = indexesCompressor.uncompress(indexes);
+                for (int j = 0; j < Array.getLength(tmpArray); j++) {
+                    Object tmp = Array.get(tmpArray, j);
+                    if (tmp instanceof Comparable && val instanceof Comparable) {
+                        Comparable<T> comparableKey = (Comparable<T>) tmp;
+                        if (comparableKey.compareTo(val) < 0)
+                            list.add((Integer) tmp);
+                    }
+                }
+            }
+            return list.stream().mapToInt(Integer::intValue).toArray();
+        } else {
+            int nbMaxThreads = 8;
+            List<Thread> threads = new ArrayList<>(nbMaxThreads);
+
+            for (int i = 0; i < values.size(); i++) {
+                if (threads.size() == nbMaxThreads) {
+                    for (Thread thread : threads) {
+                        thread.join();
+                    }
+                    threads.clear();
+                }
+
+                int finalI = i;
+                Thread thread = new Thread(() -> {
+                    Object tmpArray;
+                    try {
+                        tmpArray = valuesCompressor.uncompress(values.get(finalI));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    for (int j = 0; j < Array.getLength(tmpArray); j++) {
+                        Object tmp = Array.get(tmpArray, j);
+                        if ((val == null && tmp == null) || (tmp instanceof Comparable && val instanceof Comparable)) {
+                            Comparable<T> comparableKey = (Comparable<T>) tmp;
+                            if (val != null && comparableKey.compareTo(val) < 0) {
+                                synchronized (list) {
+                                    list.add(j + finalI * blocsSize);
+                                }
                             }
                         }
                     }
-                }
+                });
+                threads.add(thread);
+                thread.start();
             }
-        } else {
-            // Might need to improve this part for more efficient search with threads perhaps
-            int index = 0;
-            for (Object bloc : values) {
-                Object tmpArray = valuesCompressor.uncompress(bloc);
-                for (int j = 0; j < Array.getLength(tmpArray); j++) {
-                    Object tmp = Array.get(tmpArray, j);
-                    if (tmp != null && ((Comparable<T>) tmp).compareTo(val) > 0)
-                        list.add(index);
-                    index++;
-                }
+            for (Thread thread : threads) {
+                thread.join();
             }
-        }
 
-        return list.stream().mapToInt(Integer::intValue).toArray();
+            int[] retval = list.stream().mapToInt(Integer::intValue).toArray();
+            Arrays.parallelSort(retval);
+            return retval;
+        }
     }
 
-    public int[] getLower(T val) throws IOException {
-        LinkedList<Integer> list = new LinkedList<>();
+    public int[] getNotEquals(T val) throws IOException, InterruptedException {
+        List<Integer> list = Collections.synchronizedList(new LinkedList<>());
 
         if (enableIndexing) {
             for (HashMap<T, Object> bloc : rows) {
-                for (Map.Entry<T, Object> entry : bloc.entrySet()) {
-                    if (entry.getKey() instanceof Comparable && val instanceof Comparable) {
-                        Comparable<T> comparableKey = (Comparable<T>) entry.getKey();
-                        if (comparableKey.compareTo(val) < 0) {
-                            // Decompressing indexes
-                            Object tmp = indexesCompressor.uncompress(entry.getValue());
-                            for (int j = 0; j < Array.getLength(tmp); j++) {
-                                list.add((Integer) Array.get(tmp, j));
+                Object indexes = bloc.get(val);
+                if (indexes == null)
+                    continue;
+
+                // Decompressing indexes
+                Object tmpArray = indexesCompressor.uncompress(indexes);
+                for (int j = 0; j < Array.getLength(tmpArray); j++) {
+                    Object tmp = Array.get(tmpArray, j);
+                    if (tmp instanceof Comparable && val instanceof Comparable) {
+                        Comparable<T> comparableKey = (Comparable<T>) tmp;
+                        if (comparableKey.compareTo(val) != 0)
+                            list.add((Integer) tmp);
+                    }
+                }
+            }
+            return list.stream().mapToInt(Integer::intValue).toArray();
+        } else {
+            int nbMaxThreads = 8;
+            List<Thread> threads = new ArrayList<>(nbMaxThreads);
+
+            for (int i = 0; i < values.size(); i++) {
+                if (threads.size() == nbMaxThreads) {
+                    for (Thread thread : threads) {
+                        thread.join();
+                    }
+                    threads.clear();
+                }
+
+                int finalI = i;
+                Thread thread = new Thread(() -> {
+                    Object tmpArray;
+                    try {
+                        tmpArray = valuesCompressor.uncompress(values.get(finalI));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    for (int j = 0; j < Array.getLength(tmpArray); j++) {
+                        Object tmp = Array.get(tmpArray, j);
+                        if ((val == null && tmp == null) || (tmp instanceof Comparable && val instanceof Comparable)) {
+                            Comparable<T> comparableKey = (Comparable<T>) tmp;
+                            if (val != null && comparableKey.compareTo(val) != 0) {
+                                synchronized (list) {
+                                    list.add(j + finalI * blocsSize);
+                                }
                             }
                         }
                     }
-                }
+                });
+                threads.add(thread);
+                thread.start();
             }
-        } else {
-            // Might need to improve this part for more efficient search with threads perhaps
-            int index = 0;
-            for (Object bloc : values) {
-                Object tmpArray = valuesCompressor.uncompress(bloc);
-                for (int j = 0; j < Array.getLength(tmpArray); j++) {
-                    Object tmp = Array.get(tmpArray, j);
-                    if (tmp != null && ((Comparable<T>) tmp).compareTo(val) < 0)
-                        list.add(index);
-                    index++;
-                }
+            for (Thread thread : threads) {
+                thread.join();
             }
+
+            int[] retval = list.stream().mapToInt(Integer::intValue).toArray();
+            Arrays.parallelSort(retval);
+            return retval;
         }
-
-        return list.stream().mapToInt(Integer::intValue).toArray();
-    }
-
-    public int[] getNotEquals(T val) throws IOException {
-        LinkedList<Integer> list = new LinkedList<>();
-
-        if (enableIndexing) {
-            for (HashMap<T, Object> bloc : rows) {
-                for (Map.Entry<T, Object> entry : bloc.entrySet()) {
-                    if ((entry.getKey() == null && val != null) || (entry.getKey() != null && !entry.getKey().equals(val))) {
-                        // Decompressing indexes
-                        Object tmp = indexesCompressor.uncompress(entry.getValue());
-                        for (int j = 0; j < Array.getLength(tmp); j++) {
-                            list.add((Integer) Array.get(tmp, j));
-                        }
-                    }
-                }
-            }
-        } else {
-            // Might need to improve this part for more efficient search with threads perhaps
-            int index = 0;
-            for (Object bloc : values) {
-                Object tmpArray = valuesCompressor.uncompress(bloc);
-                for (int j = 0; j < Array.getLength(tmpArray); j++) {
-                    Object tmp = Array.get(tmpArray, j);
-                    if (tmp != null && !tmp.equals(val))
-                        list.add(index);
-                    index++;
-                }
-            }
-        }
-
-        return list.stream().mapToInt(Integer::intValue).toArray();
     }
 
     public T[] getValues(int bloc) throws IOException {

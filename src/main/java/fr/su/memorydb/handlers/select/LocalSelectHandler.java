@@ -22,7 +22,7 @@ public class LocalSelectHandler implements SelectHandler {
     ToolBox toolBox;
 
     @Override
-    public int[] where(TableSelection.WhereBody whereBody) {
+    public int[] where(TableSelection.WhereBody whereBody) throws IOException, InterruptedException {
         Table table = Database.getInstance().getTables().get(whereBody.getTable());
         List<int[]> evaluatedIndexes = new LinkedList<>();
 
@@ -31,8 +31,8 @@ public class LocalSelectHandler implements SelectHandler {
                 continue;
 
             LambdaTypeConverter converter = column.getConverter();
-            Object compare = selectBody.getWhere().get(column.getName()).getValue();
-            TableSelection.Operand operand = selectBody.getWhere().get(column.getName()).getOperand();
+            Object compare = whereBody.getWhere().get(column.getName()).getValue();
+            TableSelection.Operand operand = whereBody.getWhere().get(column.getName()).getOperand();
 
             switch (operand) {
                 case EQUALS:
