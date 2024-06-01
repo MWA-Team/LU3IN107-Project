@@ -114,7 +114,7 @@ public class TableSelection {
     @Path("where")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getWhere(WhereBody whereBody) {
+    public Response getWhere(WhereBody whereBody) throws IOException, InterruptedException {
         System.gc();
         Table table = Database.getInstance().getTables().get(whereBody.table);
         if (table == null) {

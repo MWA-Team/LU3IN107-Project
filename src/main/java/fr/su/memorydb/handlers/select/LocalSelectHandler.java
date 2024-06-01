@@ -22,7 +22,7 @@ public class LocalSelectHandler implements SelectHandler {
     ToolBox toolBox;
 
     @Override
-    public int[] where(TableSelection.WhereBody whereBody) {
+    public int[] where(TableSelection.WhereBody whereBody) throws IOException, InterruptedException {
         Table table = Database.getInstance().getTables().get(whereBody.getTable());
         List<int[]> evaluatedIndexes = new LinkedList<>();
 
@@ -31,17 +31,30 @@ public class LocalSelectHandler implements SelectHandler {
                 continue;
 
             LambdaTypeConverter converter = column.getConverter();
-            TableSelection.SelectOperand condition = whereBody.getWhere().get(column.getName());
-            TableSelection.Operand operand = condition.getOperand();
-            Object compare = condition.getValue();
+            Object compare = whereBody.getWhere().get(column.getName()).getValue();
+            TableSelection.Operand operand = whereBody.getWhere().get(column.getName()).getOperand();
 
-            if (operand.equals(TableSelection.Operand.EQUALS)) {
-                try {
-                    int[] indexes = column.get(converter.call((String) compare));
-                    evaluatedIndexes.add(indexes);
-                } catch (IOException | InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
+            switch (operand) {
+                case EQUALS:
+                    int[] indexesEquals = column.get(converter.call((String) compare));
+                    if (indexesEquals != null)
+                        evaluatedIndexes.add(indexesEquals);
+                    break;
+                case BIGGER:
+                    int[] indexesBigger = column.getBigger(converter.call((String) compare));
+                    if (indexesBigger != null)
+                        evaluatedIndexes.add(indexesBigger);
+                    break;
+                case LOWER:
+                    int[] indexesLower = column.getLower(converter.call((String) compare));
+                    if (indexesLower != null)
+                        evaluatedIndexes.add(indexesLower);
+                    break;
+                case NOT_EQUALS:
+                    int[] indexesNotEquals = column.getNotEquals(converter.call((String) compare));
+                    if (indexesNotEquals != null)
+                        evaluatedIndexes.add(indexesNotEquals);
+                    break;
             }
         }
 
