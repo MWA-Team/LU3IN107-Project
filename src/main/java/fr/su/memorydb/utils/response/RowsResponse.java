@@ -89,6 +89,20 @@ public class RowsResponse {
                             aggregate.count(tmpRows, column, null, mergedRow);
                         }
                     }
+                    if (selectBody.hasMaxAggregate() && tmpRows.get(0) != null) {
+                        for (String column : aggregate.getMax()) {
+                            if (!tmpRows.get(0).containsKey(column))
+                                continue;
+                            aggregate.max(tmpRows, column, null, mergedRow);
+                        }
+                    }
+                    if (selectBody.hasMinAggregate() && tmpRows.get(0) != null) {
+                        for (String column : aggregate.getMin()) {
+                            if (!tmpRows.get(0).containsKey(column))
+                                continue;
+                            aggregate.min(tmpRows, column, null, mergedRow);
+                        }
+                    }
                     if (aggregate != null)
                         break;
                 }
@@ -130,6 +144,20 @@ public class RowsResponse {
                                 if (!tmpRows.get(0).containsKey(column))
                                     continue;
                                 aggregate.count(tmpRows, column, listIndexes, mergedRow);
+                            }
+                        }
+                        if (selectBody.hasMaxAggregate() && tmpRows.get(0) != null) {
+                            for (String column : aggregate.getMax()) {
+                                if (!tmpRows.get(0).containsKey(column))
+                                    continue;
+                                aggregate.max(tmpRows, column, listIndexes, mergedRow);
+                            }
+                        }
+                        if (selectBody.hasMinAggregate() && tmpRows.get(0) != null) {
+                            for (String column : aggregate.getMin()) {
+                                if (!tmpRows.get(0).containsKey(column))
+                                    continue;
+                                aggregate.min(tmpRows, column, listIndexes, mergedRow);
                             }
                         }
                     }

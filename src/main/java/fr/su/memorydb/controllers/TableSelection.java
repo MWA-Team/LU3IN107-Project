@@ -387,6 +387,76 @@ public class TableSelection {
             }
         }
 
+        public void max(List<HashMap<String, Object>> rows, String column, List<Integer> indexes, HashMap<String, Object> output) {
+            if (rows == null || rows.isEmpty())
+                return;
+
+            if (indexes != null) {
+                String name = "max-" + column;
+                Double max = null;
+                for (Integer index : indexes) {
+                    Object value = rows.get(index).get(column);
+                    if (value == null)
+                        continue;
+                    if (!(value instanceof Number))
+                        throw new RuntimeException("You're using the max aggregate on a non-number column !");
+                    double tmp = ((Number) value).doubleValue();
+                    if (max == null || tmp > max)
+                        max = tmp;
+                }
+                output.put(name, max);
+            } else {
+                String name = "max-" + column;
+                Double max = null;
+                for (int i = 0; i < rows.size(); i++) {
+                    Object value = rows.get(i).get(column);
+                    if (value == null)
+                        continue;
+                    if (!(value instanceof Number))
+                        throw new RuntimeException("You're using the max aggregate on a non-number column !");
+                    double tmp = ((Number) value).doubleValue();
+                    if (max == null || tmp > max)
+                        max = tmp;
+                }
+                output.put(name, max);
+            }
+        }
+
+        public void min(List<HashMap<String, Object>> rows, String column, List<Integer> indexes, HashMap<String, Object> output) {
+            if (rows == null || rows.isEmpty())
+                return;
+
+            if (indexes != null) {
+                String name = "min-" + column;
+                Double min = null;
+                for (Integer index : indexes) {
+                    Object value = rows.get(index).get(column);
+                    if (value == null)
+                        continue;
+                    if (!(value instanceof Number))
+                        throw new RuntimeException("You're using the min aggregate on a non-number column !");
+                    double tmp = ((Number) value).doubleValue();
+                    if (min == null || tmp < min)
+                        min = tmp;
+                }
+                output.put(name, min);
+            } else {
+                String name = "min-" + column;
+                Double min = null;
+                for (int i = 0; i < rows.size(); i++) {
+                    Object value = rows.get(i).get(column);
+                    if (value == null)
+                        continue;
+                    if (!(value instanceof Number))
+                        throw new RuntimeException("You're using the min aggregate on a non-number column !");
+                    double tmp = ((Number) value).doubleValue();
+                    if (min == null || tmp < min)
+                        min = tmp;
+                }
+                output.put(name, min);
+            }
+        }
+
     }
 
     public enum Operand { EQUALS, BIGGER, LOWER, NOT_EQUALS }
