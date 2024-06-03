@@ -144,7 +144,7 @@ public class LocalInsertionHandler implements InsertionHandler {
 
                     try {
                         Object val;
-                        if (g.getFieldRepetitionCount(c.getName()) != 0)
+                        if (g.getType().containsField(c.getName()) && g.getFieldRepetitionCount(c.getName()) != 0)
                             val = c.getLambda().call(g, c.getName(), 0);
                         else
                             val = null;
