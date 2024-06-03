@@ -11,15 +11,29 @@ public class DoubleOutputStream extends OutputStream {
     private Double prev;
     private int nb;
     private boolean first;
+    private boolean repetitions;
 
     public DoubleOutputStream() {
         byteArrayOutputStream = new ByteArrayOutputStream();
         prev = null;
         nb = 1;
         first = true;
+        repetitions = true;
+    }
+
+    public DoubleOutputStream(boolean repetitions) {
+        byteArrayOutputStream = new ByteArrayOutputStream();
+        prev = null;
+        nb = 1;
+        first = true;
+        this.repetitions = repetitions;
     }
 
     public void writeDouble(Double value) throws IOException {
+        if(!repetitions) {
+            writeNoRepetitions(value);
+            return;
+        }
         if (first) {
             first = false;
             prev = value;
@@ -54,6 +68,8 @@ public class DoubleOutputStream extends OutputStream {
     }
 
     public void finish() throws IOException {
+        if (!repetitions)
+            return;
         if (prev == null)
             byteArrayOutputStream.write(new byte[]{0, 0, 0, 0});
         else {
@@ -65,6 +81,16 @@ public class DoubleOutputStream extends OutputStream {
             nb = 1;
         }
         first = true;
+    }
+
+    private void writeNoRepetitions(Double value) throws IOException {
+        if (value == null)
+            byteArrayOutputStream.write(0);
+        else {
+            byteArrayOutputStream.write(1);
+            byte[] doubleBytes = ByteBuffer.allocate(8).putDouble(value).array();
+            byteArrayOutputStream.write(doubleBytes);
+        }
     }
 
     @Override

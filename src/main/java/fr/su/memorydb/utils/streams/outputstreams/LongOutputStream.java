@@ -11,15 +11,29 @@ public class LongOutputStream extends OutputStream {
     private Long prev;
     private int nb;
     private boolean first;
+    private boolean repetitions;
 
     public LongOutputStream() {
         byteArrayOutputStream = new ByteArrayOutputStream();
         prev = null;
         nb = 1;
         first = true;
+        repetitions = true;
+    }
+
+    public LongOutputStream(boolean repetitions) {
+        byteArrayOutputStream = new ByteArrayOutputStream();
+        prev = null;
+        nb = 1;
+        first = true;
+        this.repetitions = repetitions;
     }
 
     public void writeLong(Long value) throws IOException {
+        if (!repetitions) {
+            writeNoRepetitions(value);
+            return;
+        }
         if (first) {
             first = false;
             prev = value;
@@ -54,6 +68,8 @@ public class LongOutputStream extends OutputStream {
     }
 
     public void finish() throws IOException {
+        if (!repetitions)
+            return;
         if (prev == null)
             byteArrayOutputStream.write(new byte[]{0, 0, 0, 0});
         else {
@@ -65,6 +81,16 @@ public class LongOutputStream extends OutputStream {
             nb = 1;
         }
         first = true;
+    }
+
+    private void writeNoRepetitions(Long value) throws IOException {
+        if (value == null)
+            byteArrayOutputStream.write(0);
+        else {
+            byteArrayOutputStream.write(1);
+            byte[] longBytes = ByteBuffer.allocate(8).putLong(value).array();
+            byteArrayOutputStream.write(longBytes);
+        }
     }
 
     @Override

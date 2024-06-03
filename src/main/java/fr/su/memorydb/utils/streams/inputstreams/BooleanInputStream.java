@@ -12,12 +12,21 @@ public class BooleanInputStream extends InputStream {
     private int ite = 0;
     private int count = 0;
     private Boolean value = null;
+    private boolean repetitions;
 
     public BooleanInputStream(byte[] byteArray) {
         this.byteArrayInputStream = new ByteArrayInputStream(byteArray);
+        repetitions = true;
+    }
+
+    public BooleanInputStream(byte[] byteArray, boolean repetitions) {
+        this.byteArrayInputStream = new ByteArrayInputStream(byteArray);
+        this.repetitions = repetitions;
     }
 
     public Boolean readBoolean() throws IOException {
+        if (!repetitions)
+            return readNoRepetitions();
         if (ite < count) {
             ite++;
         } else {
@@ -43,6 +52,17 @@ public class BooleanInputStream extends InputStream {
             value = bool == 1;
         }
         return value;
+    }
+
+    private Boolean readNoRepetitions() throws IOException {
+        int code = byteArrayInputStream.read();
+        if (code == -1)
+            throw new IOException("End of stream reached");
+        int bool = byteArrayInputStream.read();
+        if (bool == -1) {
+            throw new IOException("Failed to read 1 byte for a Boolean");
+        }
+        return bool == 1;
     }
 
     @Override
