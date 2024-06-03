@@ -156,11 +156,14 @@ public class LocalInsertionHandler implements InsertionHandler {
                     }
                 }
 
-                if (values != null && values.size() / ((float)table.rowsCounter) < toolBox.indexingThreshold()) {
-                    if (c.indexingEnabled())
-                        c.disableIndexing();
-                    if (c.valuesRepetitions())
-                        c.disableValuesRepetitions();
+                if (values != null) {
+                    if (values.size() / ((float)table.rowsCounter) < toolBox.indexingThreshold()) {
+                        if (c.indexingEnabled())
+                            c.disableIndexing();
+                    } else {
+                        if (c.valuesRepetitions())
+                            c.disableValuesRepetitions();
+                    }
                 }
 
                 try {
