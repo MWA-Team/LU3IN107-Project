@@ -11,15 +11,29 @@ public class IntegerOutputStream extends OutputStream {
     private Integer prev;
     private int nb;
     private boolean first;
+    private boolean repetitions;
 
     public IntegerOutputStream() {
         this.byteArrayOutputStream = new ByteArrayOutputStream();
         prev = null;
         nb = 1;
         first = true;
+        repetitions = true;
+    }
+
+    public IntegerOutputStream(boolean repetitions) {
+        this.byteArrayOutputStream = new ByteArrayOutputStream();
+        prev = null;
+        nb = 1;
+        first = true;
+        this.repetitions = repetitions;
     }
 
     public void writeInteger(Integer value) throws IOException {
+        if (!repetitions) {
+            writeNoRepetitions(value);
+            return;
+        }
         if (first) {
             first = false;
             prev = value;
@@ -54,6 +68,8 @@ public class IntegerOutputStream extends OutputStream {
     }
 
     public void finish() throws IOException {
+        if (!repetitions)
+            return;
         if (prev == null)
             byteArrayOutputStream.write(new byte[]{0, 0, 0, 0});
         else {
@@ -67,8 +83,18 @@ public class IntegerOutputStream extends OutputStream {
         first = true;
     }
 
+    private void writeNoRepetitions(Integer value) throws IOException {
+        if (value == null)
+            byteArrayOutputStream.write(0);
+        else {
+            byteArrayOutputStream.write(1);
+            byte[] intBytes = ByteBuffer.allocate(4).putInt(value).array();
+            byteArrayOutputStream.write(intBytes);
+        }
+    }
+
     @Override
-    public void write(int b) throws IOException {
+    public void write(int b) {
         byteArrayOutputStream.write(b);
     }
 

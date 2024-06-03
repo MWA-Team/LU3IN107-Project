@@ -13,12 +13,21 @@ public class StringInputStream extends InputStream {
     private int ite = 0;
     private int count = 0;
     private String value = null;
+    private boolean repetitions;
 
     public StringInputStream(byte[] byteArray) {
         this.byteArrayInputStream = new ByteArrayInputStream(byteArray);
+        repetitions = true;
+    }
+
+    public StringInputStream(byte[] byteArray, boolean repetitions) {
+        this.byteArrayInputStream = new ByteArrayInputStream(byteArray);
+        this.repetitions = repetitions;
     }
 
     public String readString() throws IOException {
+        if (!repetitions)
+            return readNoRepetitions();
         if (ite < count) {
             ite++;
         } else {
@@ -48,6 +57,22 @@ public class StringInputStream extends InputStream {
             value = new String(tmp, StandardCharsets.UTF_8);
         }
         return value;
+    }
+
+    private String readNoRepetitions() throws IOException {
+        int code = byteArrayInputStream.read();
+        if (code == -1)
+            throw new IOException("End of stream reached");
+        byte[] tmp = new byte[4];
+        if (byteArrayInputStream.read(tmp) != 4) {
+            throw new IOException("Failed to read 4 bytes for an Integer (length)");
+        }
+        int len = ByteBuffer.wrap(tmp).getInt();
+        tmp = new byte[len];
+        if (byteArrayInputStream.read(tmp) != len) {
+            throw new IOException("Failed to read " + len + " bytes for a String");
+        }
+        return new String(tmp, StandardCharsets.UTF_8);
     }
 
     @Override

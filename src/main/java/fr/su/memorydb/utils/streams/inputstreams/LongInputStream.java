@@ -12,12 +12,21 @@ public class LongInputStream extends InputStream {
     private int ite = 0;
     private int count = 0;
     private Long value = null;
+    private boolean repetitions;
 
     public LongInputStream(byte[] byteArray) {
         this.byteArrayInputStream = new ByteArrayInputStream(byteArray);
+        repetitions = true;
+    }
+
+    public LongInputStream(byte[] byteArray, boolean repetitions) {
+        this.byteArrayInputStream = new ByteArrayInputStream(byteArray);
+        this.repetitions = repetitions;
     }
 
     public Long readLong() throws IOException {
+        if (!repetitions)
+            return readNoRepetitions();
         if (ite < count) {
             ite++;
         } else {
@@ -41,6 +50,17 @@ public class LongInputStream extends InputStream {
             value = ByteBuffer.wrap(tmp).getLong();
         }
         return value;
+    }
+
+    private Long readNoRepetitions() throws IOException {
+        int code = byteArrayInputStream.read();
+        if (code == -1)
+            throw new IOException("End of stream reached");
+        byte[] tmp = new byte[8];
+        if (byteArrayInputStream.read(tmp) != 8) {
+            throw new IOException("Failed to read 8 bytes for a Long");
+        }
+        return ByteBuffer.wrap(tmp).getLong();
     }
 
     @Override

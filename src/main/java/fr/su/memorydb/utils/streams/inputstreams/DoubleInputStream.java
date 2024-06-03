@@ -12,12 +12,21 @@ public class DoubleInputStream extends InputStream {
     private int ite = 0;
     private int count = 0;
     private Double value = null;
+    private boolean repetitions;
 
     public DoubleInputStream(byte[] byteArray) {
         this.byteArrayInputStream = new ByteArrayInputStream(byteArray);
+        repetitions = true;
+    }
+
+    public DoubleInputStream(byte[] byteArray, boolean repetitions) {
+        this.byteArrayInputStream = new ByteArrayInputStream(byteArray);
+        this.repetitions = repetitions;
     }
 
     public Double readDouble() throws IOException {
+        if (!repetitions)
+            return readNoRepetitions();
         if (ite < count) {
             ite++;
         } else {
@@ -42,6 +51,17 @@ public class DoubleInputStream extends InputStream {
             value = ByteBuffer.wrap(tmp).getDouble();
         }
         return value;
+    }
+
+    private Double readNoRepetitions() throws IOException {
+        int code = byteArrayInputStream.read();
+        if (code == -1)
+            throw new IOException("End of stream reached");
+        byte[] tmp = new byte[8];
+        if (byteArrayInputStream.read(tmp) != 8) {
+            throw new IOException("Failed to read 8 bytes for a Double");
+        }
+        return ByteBuffer.wrap(tmp).getDouble();
     }
 
     @Override

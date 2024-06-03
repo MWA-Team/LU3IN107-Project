@@ -12,12 +12,21 @@ public class IntegerInputStream extends InputStream {
     private int ite = 0;
     private int count = 0;
     private Integer value = null;
+    private boolean repetitions;
 
     public IntegerInputStream(byte[] byteArray) {
         this.byteArrayInputStream = new ByteArrayInputStream(byteArray);
+        repetitions = true;
+    }
+
+    public IntegerInputStream(byte[] byteArray, boolean repetitions) {
+        this.byteArrayInputStream = new ByteArrayInputStream(byteArray);
+        this.repetitions = repetitions;
     }
 
     public Integer readInteger() throws IOException {
+        if (!repetitions)
+            return readNoRepetitions();
         if (ite < count) {
             ite++;
         } else {
@@ -41,6 +50,17 @@ public class IntegerInputStream extends InputStream {
             value = ByteBuffer.wrap(tmp).getInt();
         }
         return value;
+    }
+
+    private Integer readNoRepetitions() throws IOException {
+        int code = byteArrayInputStream.read();
+        if (code == -1)
+            throw new IOException("End of stream reached");
+        byte[] tmp = new byte[4];
+        if (byteArrayInputStream.read(tmp) != 4) {
+            throw new IOException("Failed to read 4 bytes for an Integer");
+        }
+        return ByteBuffer.wrap(tmp).getInt();
     }
 
     @Override
