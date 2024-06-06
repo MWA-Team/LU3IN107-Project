@@ -9,6 +9,8 @@ public class MemoryUsageResponse extends ValidResponse {
     @JsonProperty
     HashMap<String, Double> memoryUsage;
 
+    public MemoryUsageResponse() {}
+
     public MemoryUsageResponse(HashMap<String, Double> memoryUsage) {
         super();
         this.memoryUsage = memoryUsage;
