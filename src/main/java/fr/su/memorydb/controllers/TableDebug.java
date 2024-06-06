@@ -97,7 +97,7 @@ public class TableDebug {
             rows.put(entry.getKey(), entry.getValue().rowsCounter);
         }
 
-        return Response.status(200).entity(new DebugRowsResponse(rows).details("The repartition of the tables on the different servers.").setStart(start).done()).type(MediaType.APPLICATION_JSON).build();
+        return Response.status(200).entity(new DebugRowsResponse(rows).details("How many rows are present in each table.").setStart(start).done()).type(MediaType.APPLICATION_JSON).build();
     }
 
 }
