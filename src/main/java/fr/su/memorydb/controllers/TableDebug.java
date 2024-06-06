@@ -1,6 +1,7 @@
 package fr.su.memorydb.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import fr.su.memorydb.handlers.ForwardingManager;
 import fr.su.memorydb.utils.ToolBox;
 import fr.su.memorydb.utils.response.MemoryUsageResponse;
@@ -69,6 +70,7 @@ public class TableDebug {
             remoteResponse = forwardingManager.forwardMemoryUsage();
             HashMap<Integer, Response> responses = (HashMap<Integer, Response>) remoteResponse.getEntity();
             ObjectMapper om = new ObjectMapper();
+            om.registerModule(new JavaTimeModule());
             for (Map.Entry<Integer, Response> entry : responses.entrySet()) {
                 if (entry.getValue().getStatus() != 200)
                     continue;
