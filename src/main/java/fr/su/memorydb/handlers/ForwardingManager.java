@@ -38,9 +38,7 @@ public class ForwardingManager {
      * @throws IOException
      */
     public Response forwardInsert(File body) throws IOException, InterruptedException {
-        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
-            return proxy.insert(signature, id, (File) data);
-        });
+        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> proxy.insert(signature, id, (File) data));
     }
 
     /**
@@ -60,9 +58,7 @@ public class ForwardingManager {
      * @throws IOException
      */
     public Response forwardWhere(String body) throws IOException, InterruptedException {
-        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
-            return proxy.where(signature, id, data.toString());
-        });
+        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> proxy.where(signature, id, data.toString()));
     }
 
     /**
@@ -72,9 +68,11 @@ public class ForwardingManager {
      * @throws IOException
      */
     public Response forwardRows(String body) throws IOException, InterruptedException {
-        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> {
-            return proxy.rows(signature, id, data.toString());
-        });
+        return forwardQuery(body, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> proxy.rows(signature, id, data.toString()));
+    }
+
+    public Response forwardMemoryUsage() throws IOException, InterruptedException {
+        return forwardQuery(null, (ForwardingProxy proxy, @HeaderParam("Server-Signature") String signature, @QueryParam("server_id") String id, Object data) -> proxy.memoryUsage(signature, id, null));
     }
 
     /**

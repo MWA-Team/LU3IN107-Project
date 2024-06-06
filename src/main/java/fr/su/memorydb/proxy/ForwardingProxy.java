@@ -29,4 +29,8 @@ public interface ForwardingProxy {
     @Produces(MediaType.APPLICATION_JSON)
     Response where(@HeaderParam ("Server-Signature") String signature, @QueryParam("server_id") String id, String body);
 
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    Response memoryUsage(@HeaderParam ("Server-Signature") String signature, @QueryParam("server_id") String id, String body);
+
 }
