@@ -2,8 +2,11 @@ package fr.su.memorydb.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import fr.su.memorydb.database.Database;
+import fr.su.memorydb.database.Table;
 import fr.su.memorydb.handlers.ForwardingManager;
 import fr.su.memorydb.utils.ToolBox;
+import fr.su.memorydb.utils.response.DebugRowsResponse;
 import fr.su.memorydb.utils.response.MemoryUsageResponse;
 import fr.su.memorydb.utils.response.RepartitionResponse;
 import io.vertx.ext.web.RoutingContext;
@@ -80,6 +83,21 @@ public class TableDebug {
         }
 
         return Response.status(200).entity(new MemoryUsageResponse(memoryUsage).details("The memory usage on the different servers.").setStart(start).done()).type(MediaType.APPLICATION_JSON).build();
+    }
+
+    @GET
+    @Path("rows")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getRows() {
+        System.gc();
+        Instant start = Instant.now();
+
+        HashMap<String, Integer> rows = new HashMap<>();
+        for (Map.Entry<String, Table> entry : Database.getInstance().getTables().entrySet()) {
+            rows.put(entry.getKey(), entry.getValue().rowsCounter);
+        }
+
+        return Response.status(200).entity(new DebugRowsResponse(rows).details("The repartition of the tables on the different servers.").setStart(start).done()).type(MediaType.APPLICATION_JSON).build();
     }
 
 }
