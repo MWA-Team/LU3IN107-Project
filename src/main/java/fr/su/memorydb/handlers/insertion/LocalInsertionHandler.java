@@ -160,6 +160,8 @@ public class LocalInsertionHandler implements InsertionHandler {
                     Group g = groups.get(i);
 
                     try {
+                        // This if bloc is useful to not raise exceptions when the value is not present.
+                        // Exceptions are very time-consuming, so we try to avoid them as much as possible.
                         Object val;
                         if (g.getType().containsField(c.getName()) && g.getFieldRepetitionCount(c.getName()) != 0)
                             val = c.getLambda().call(g, c.getName(), 0);
