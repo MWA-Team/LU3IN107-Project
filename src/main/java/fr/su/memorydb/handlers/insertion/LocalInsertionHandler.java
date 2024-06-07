@@ -40,8 +40,14 @@ public class LocalInsertionHandler implements InsertionHandler {
         return 200;
     }
 
+    /**
+     * This function parses the parquet file and adds blocs to the database.
+     * @param absolutePath The absolute path to the file on the computer
+     * @param tableName The table we want to insert into
+     */
     private void handlerFile(Path absolutePath, String tableName) {
         try {
+            // Creating all the variables used by the parquet library
             Configuration conf = new Configuration();
             ParquetMetadata readFooter = ParquetFileReader.readFooter(conf, absolutePath, ParquetMetadataConverter.NO_FILTER);
             MessageType schema = readFooter.getFileMetaData().getSchema();
@@ -49,6 +55,7 @@ public class LocalInsertionHandler implements InsertionHandler {
             MessageColumnIO columnIO = new ColumnIOFactory().getColumnIO(schema);
             GroupRecordConverter groupRecordConverter = new GroupRecordConverter(schema);
 
+            // Defining the blocs size (default is 1048576 as it was the first bloc size we encountered when parsing quarquet files and we needed a value to set as default.
             int blocsSize;
             if (toolBox.blocsSize() <= 0) {
                 if (ToolBox.realBlocsSize() <= 0) {
@@ -63,6 +70,7 @@ public class LocalInsertionHandler implements InsertionHandler {
             try (ParquetFileReader r = new ParquetFileReader(conf, absolutePath, readFooter)) {
                 PageReadStore pages = null;
 
+                // Getting the remaining space available in the last bloc of the column
                 int max = ToolBox.realBlocsSize();
                 for (Column column : table.getColumns()) {
                     if (!column.stored())
@@ -118,7 +126,16 @@ public class LocalInsertionHandler implements InsertionHandler {
         }
     }
 
-    public void addBloc(List<Group> groups, Table table, HashMap<Column, Object[]> map) throws InterruptedException {
+    /**
+     * This function is used to add a bloc to the database. If the column is stored on this server, we get the right
+     * values according to the type of the column, and then we add them in one go.
+     * @param groups All the groups that contain the values for the bloc
+     * @param table The table we need to add the rows into
+     * @param map A hashmap containing all the arrays for this bloc (it is initialized with the right size to store all
+     *            the values of the bloc, for each column).
+     * @throws InterruptedException
+     */
+    private void addBloc(List<Group> groups, Table table, HashMap<Column, Object[]> map) throws InterruptedException {
         List<Thread> threads = new ArrayList<>();
 
         for (Column c : table.getColumns()) {
@@ -181,6 +198,12 @@ public class LocalInsertionHandler implements InsertionHandler {
         }
     }
 
+    /**
+     * This function initialize the given hashmap with arrays of the size nbRows to store all the values of a bloc.
+     * @param map Map to be initialized
+     * @param table The table where the rows will be inserted into
+     * @param nbRows The size of the arrays
+     */
     private void initMap(HashMap<Column, Object[]> map, Table table, int nbRows) {
         for (Column c : table.getColumns()) {
             if (c.stored())
